@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  桌面小工具的聲明檔。targetCell 4x2 ≈ 4~5 列報價；resizeable 讓使用者自己拉大。
+  updatePeriodMillis 設 30 分鐘，但 Android 的最小間隔其實是 30 分鐘，且**真正推動更新的是
+  Flutter 端的 heartbeat 寫完 SharedPreferences 後呼叫 HomeWidget.updateWidget**。
+  previewImage 暫借 ic_launcher（第 6 期補真正的預覽圖）。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="220dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:previewImage="@mipmap/ic_launcher"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:updatePeriodMillis="1800000" />

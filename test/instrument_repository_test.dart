@@ -1,0 +1,82 @@
+import 'package:dquote/core/models.dart';
+import 'package:dquote/data/db/database.dart';
+import 'package:dquote/data/repositories/instrument_repository.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// 自選股的兩條容易悄悄壞掉的路：**分頁歸屬**與**手動排序**。
+void main() {
+  group('分頁 ↔ market 對照', () {
+    test('三個分頁合起來要涵蓋所有 Market（日後加 enum 卻忘了歸屬就會出現「加了看不到」）', () {
+      final covered = marketTabs.values.expand((e) => e).toSet();
+      expect(covered, Market.values.toSet(), reason: '任何 Market 都必須有歸屬的分頁');
+    });
+
+    test('指數屬於台股分頁、加密屬於美股分頁（不為它們另開分頁）', () {
+      expect(taiwanTabMarkets, contains(Market.stockIndex));
+      expect(taiwanTabMarkets, contains(Market.taiwan));
+      expect(americaTabMarkets, contains(Market.crypto));
+      expect(fxTabMarkets, {Market.fx});
+    });
+
+    test('一個 market 只會出現在一個分頁（否則同一档会在两个 tab 重复出现）', () {
+      final seen = <Market>{};
+      for (final set in marketTabs.values) {
+        for (final m in set) {
+          expect(seen.contains(m), isFalse, reason: '$m 被分給兩個分頁');
+          seen.add(m);
+        }
+      }
+    });
+  });
+
+  test('seed 寫進去的 market 必須是合法的 Market 名字（打錯字 → 那档永遠不會出現在任何分頁）', () async {
+    final db = AppDatabase.memory();
+    await db.seedIfEmpty();
+    final rows = await db.select(db.instruments).get();
+    expect(rows, isNotEmpty);
+    final legal = Market.values.map((e) => e.name).toSet();
+    for (final r in rows) {
+      expect(legal, contains(r.market), reason: '${r.symbol} 的 market="${r.market}" 不是 Market 的名字');
+      expect(marketTabs.values.any((s) => s.map((m) => m.name).contains(r.market)), isTrue,
+          reason: '${r.symbol} 沒有任何分頁會顯示它');
+    }
+    await db.close();
+  });
+
+  group('拖曳排序', () {
+    late AppDatabase db;
+    late InstrumentRepository repo;
+
+    setUp(() async {
+      db = AppDatabase.memory();
+      repo = InstrumentRepository(db);
+      for (final (i, s) in ['2330.TW', '0050.TW', '2317.TW'].indexed) {
+        await repo.add(
+            symbol: s, name: 'n$i', currency: 'TWD', market: Market.taiwan);
+      }
+    });
+
+    tearDown(() async => db.close());
+
+    test('reorder 之後 watchAll 的順序照新的排', () async {
+      expect((await repo.all()).map((e) => e.symbol), ['2330.TW', '0050.TW', '2317.TW']);
+
+      await repo.reorder(['2317.TW', '2330.TW', '0050.TW']);
+
+      expect((await repo.all()).map((e) => e.symbol), ['2317.TW', '2330.TW', '0050.TW']);
+    });
+
+    test('sortOrder 一律重排成 0..n-1（不跳號，跨分頁也不會互相插隊）', () async {
+      await repo.reorder(['0050.TW', '2317.TW', '2330.TW']);
+      final rows = await repo.all();
+      expect(rows.map((e) => e.sortOrder), [0, 1, 2]);
+    });
+
+    test('只排這個分頁的代號，不會動到別人', () async {
+      await repo.add(symbol: 'TSM', name: 'TSMC ADR', currency: 'USD', market: Market.america);
+      await repo.reorder(['0050.TW', '2330.TW', '2317.TW']);
+      final us = await repo.byMarket([Market.america]);
+      expect(us.single.symbol, 'TSM', reason: '美股那档不該被台股的拖曳排動');
+    });
+  });
+}
