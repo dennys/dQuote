@@ -245,6 +245,16 @@ class Heartbeat {
   MoneyFormatter _formatter(PortfolioBundle b) =>
       MoneyFormatter(baseCcy: baseCcy, rateOf: (c) => b.rates[c]);
 
+  /// 不打網路，只用快取的報價重發小工具：自選股增刪、改小工具開關後馬上反映，不用等下次心跳。
+  Future<void> refreshWidget() async {
+    try {
+      final symbols = [for (final i in await instruments.all()) i.symbol];
+      await _publishWidget(await quotes.cached(symbols));
+    } on Object {
+      // 小工具發布失敗不影響使用者操作，下次心跳會再發一次。
+    }
+  }
+
   /// 桌面小工具。列數上限就是設定頁那個滑桿（以前把 in_widget 的全部發出去，滑桿形同虛設）。
   Future<void> _publishWidget(Map<String, Quote> quoteMap) async {
     final inWidget = await instruments.forWidget(limit: await settings.widgetRows());

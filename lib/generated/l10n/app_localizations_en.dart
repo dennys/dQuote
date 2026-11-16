@@ -204,6 +204,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addAlertTitle => 'Add alert';
 
   @override
+  String get addToWidget => 'Add to home widget';
+
+  @override
+  String get removeFromWidget => 'Remove from home widget';
+
+  @override
+  String get addedToWidget => 'Added to home widget';
+
+  @override
+  String get removedFromWidget => 'Removed from home widget';
+
+  @override
   String get alertKindClosingDigest => 'Closing digest';
 
   @override

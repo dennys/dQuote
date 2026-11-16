@@ -254,7 +254,9 @@ class _WatchlistPageState extends State<WatchlistPage> with WidgetsBindingObserv
                           name: q.name,
                           currency: q.currency,
                           market: p.market,
+                          inWidget: true,
                         );
+                        await c.heartbeat.refreshWidget();
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                       } on Object {
                         setState(() => error = l.symbolNotFound);
@@ -314,7 +316,18 @@ class _QuoteTile extends StatelessWidget {
         ),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => QuoteDetailPage(symbol: instrument.symbol))),
+        onLongPress: () => _toggleWidget(context),
       ),
     );
+  }
+
+  Future<void> _toggleWidget(BuildContext context) async {
+    final l = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final c = getIt<AppContainer>();
+    final next = !instrument.inWidget;
+    await c.instruments.setInWidget(instrument.symbol, next);
+    await c.heartbeat.refreshWidget();
+    messenger.showSnackBar(SnackBar(content: Text(next ? l.addedToWidget : l.removedFromWidget)));
   }
 }

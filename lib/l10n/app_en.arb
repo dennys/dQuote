@@ -76,6 +76,10 @@
   "emptyPortfolio": "No holdings yet.",
 
   "addAlertTitle": "Add alert",
+  "addToWidget": "Add to home widget",
+  "removeFromWidget": "Remove from home widget",
+  "addedToWidget": "Added to home widget",
+  "removedFromWidget": "Removed from home widget",
   "alertKindClosingDigest": "Closing digest",
   "alertKindAbove": "Price above",
   "alertKindBelow": "Price below",

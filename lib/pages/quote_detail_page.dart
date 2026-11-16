@@ -29,6 +29,8 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
   String? _error;
   bool _loading = true;
   double? _costPrice;
+  bool _watched = false;
+  bool _inWidget = false;
 
   @override
   void initState() {
@@ -46,11 +48,14 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
       final candles = await c.quotes.history(widget.symbol, _range, force: force);
       final cached = await c.quotes.cached([widget.symbol]);
       final holdings = (await c.portfolio.holdings()).where((h) => h.symbol == widget.symbol).toList();
+      final watched = await c.instruments.find(widget.symbol);
       if (!mounted) return;
       setState(() {
         _candles = candles;
         _quote = cached[widget.symbol];
         _costPrice = holdings.isEmpty ? null : _averageCost(holdings);
+        _watched = watched != null;
+        _inWidget = watched?.inWidget ?? false;
         _loading = false;
       });
     } on Object catch (e) {
@@ -60,6 +65,18 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _toggleWidget() async {
+    final l = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final c = getIt<AppContainer>();
+    final next = !_inWidget;
+    await c.instruments.setInWidget(widget.symbol, next);
+    await c.heartbeat.refreshWidget();
+    if (!mounted) return;
+    setState(() => _inWidget = next);
+    messenger.showSnackBar(SnackBar(content: Text(next ? l.addedToWidget : l.removedFromWidget)));
   }
 
   /// 同檔多筆買進 → 顯示加權平均成本（不是第一筆，那會誤導）。
@@ -82,6 +99,12 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
         title: Text(q?.name.isNotEmpty == true ? q!.name : widget.symbol),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: () => _load(force: true)),
+          if (_watched)
+            IconButton(
+              icon: Icon(_inWidget ? Icons.widgets : Icons.widgets_outlined),
+              tooltip: _inWidget ? l.removeFromWidget : l.addToWidget,
+              onPressed: _toggleWidget,
+            ),
           IconButton(
             icon: const Icon(Icons.add_alert_outlined),
             tooltip: l.addAlertTitle,

@@ -476,6 +476,30 @@ abstract class AppLocalizations {
   /// **'Add alert'**
   String get addAlertTitle;
 
+  /// No description provided for @addToWidget.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to home widget'**
+  String get addToWidget;
+
+  /// No description provided for @removeFromWidget.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from home widget'**
+  String get removeFromWidget;
+
+  /// No description provided for @addedToWidget.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to home widget'**
+  String get addedToWidget;
+
+  /// No description provided for @removedFromWidget.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from home widget'**
+  String get removedFromWidget;
+
   /// No description provided for @alertKindClosingDigest.
   ///
   /// In en, this message translates to:

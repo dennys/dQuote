@@ -203,6 +203,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addAlertTitle => '新增提醒';
 
   @override
+  String get addToWidget => '加入桌面小工具';
+
+  @override
+  String get removeFromWidget => '移出桌面小工具';
+
+  @override
+  String get addedToWidget => '已加入桌面小工具';
+
+  @override
+  String get removedFromWidget => '已移出桌面小工具';
+
+  @override
   String get alertKindClosingDigest => '收盤日報';
 
   @override

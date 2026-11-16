@@ -76,6 +76,10 @@
   "emptyPortfolio": "還沒有持股。",
 
   "addAlertTitle": "新增提醒",
+  "addToWidget": "加入桌面小工具",
+  "removeFromWidget": "移出桌面小工具",
+  "addedToWidget": "已加入桌面小工具",
+  "removedFromWidget": "已移出桌面小工具",
   "alertKindClosingDigest": "收盤日報",
   "alertKindAbove": "價格以上",
   "alertKindBelow": "價格以下",
