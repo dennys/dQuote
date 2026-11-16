@@ -13,13 +13,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'dQuote';
 
   @override
-  String get tabTaiwan => 'Taiwan';
-
-  @override
-  String get tabAmerica => 'US';
-
-  @override
-  String get tabFx => 'FX';
+  String get tabWatchlist => 'Watchlist';
 
   @override
   String get tabPortfolio => 'Portfolio';

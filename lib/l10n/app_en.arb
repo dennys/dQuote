@@ -2,9 +2,7 @@
   "@@locale": "en",
 
   "appTitle": "dQuote",
-  "tabTaiwan": "Taiwan",
-  "tabAmerica": "US",
-  "tabFx": "FX",
+  "tabWatchlist": "Watchlist",
   "tabPortfolio": "Portfolio",
   "tabAlerts": "Alerts",
 

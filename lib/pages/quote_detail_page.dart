@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../core/app_format.dart';
 import '../core/models.dart';
@@ -104,7 +105,7 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
                   ),
                 ),
                 if (q != null && q.changePct != null)
-                  Text(fmt.pct(q.changePct!),
+                  Text(quoteChangeText(fmt, q),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.forChange(q.change))),
               ],
             ),
@@ -155,12 +156,53 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
     final last = _candles.last.close;
     final tint = last >= first ? colors.up : colors.down;
 
+    final minY = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b) * 0.998;
+    final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b) * 1.002;
+    // interval 必須 > 0，全部收盤價相同時也要避免 0。
+    final yStep = ((maxY - minY) / 4).clamp(1e-6, double.infinity).toDouble();
+    final xStep = ((_candles.length - 1) / 4).clamp(1, double.infinity).toDouble();
+    final axisStyle = Theme.of(context).textTheme.labelSmall;
+    final intraday = _range == QuoteRange.d1 || _range == QuoteRange.d5;
+    final timeFmt = DateFormat(intraday ? 'HH:mm' : 'MM/dd');
+
     return LineChart(
       LineChartData(
-        minY: spots.map((s) => s.y).reduce((a, b) => a < b ? a : b) * 0.998,
-        maxY: spots.map((s) => s.y).reduce((a, b) => a > b ? a : b) * 1.002,
-        gridData: const FlGridData(show: false),
-        titlesData: const FlTitlesData(show: false),
+        minY: minY,
+        maxY: maxY,
+        gridData: FlGridData(
+          drawVerticalLine: false,
+          horizontalInterval: yStep,
+          getDrawingHorizontalLine: (_) =>
+              FlLine(color: Colors.grey.withValues(alpha: 0.2), strokeWidth: 1),
+        ),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 52,
+              interval: yStep,
+              getTitlesWidget: (value, meta) => Text(
+                value >= 1000 ? value.toStringAsFixed(0) : value.toStringAsFixed(2),
+                style: axisStyle,
+              ),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 22,
+              interval: xStep,
+              getTitlesWidget: (value, meta) {
+                final i = value.round();
+                if (i < 0 || i >= _candles.length) return const SizedBox.shrink();
+                final t = DateTime.fromMillisecondsSinceEpoch(_candles[i].time * 1000).toLocal();
+                return Text(timeFmt.format(t), style: axisStyle);
+              },
+            ),
+          ),
+        ),
         borderData: FlBorderData(show: false),
         lineTouchData: const LineTouchData(enabled: false),
         extraLinesData: ExtraLinesData(

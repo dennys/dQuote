@@ -76,13 +76,13 @@ void main() {
     await db.close();
   });
 
-  testWidgets('啟動：五個分頁都渲染得出來，且沒有未捕獲例外', (tester) async {
+  testWidgets('啟動：三個分頁都渲染得出來，且沒有未捕獲例外', (tester) async {
     await pumpApp(tester);
 
     expect(find.byType(NavigationBar), findsOneWidget);
 
     // IndexedStack 不會把沒選到的分頁留在樹裡，所以**選到哪個就驗哪個**。
-    final expected = <Type>[WatchlistPage, WatchlistPage, WatchlistPage, PortfolioPage, AlertsPage];
+    final expected = <Type>[WatchlistPage, PortfolioPage, AlertsPage];
     for (var i = 0; i < expected.length; i++) {
       await tester.tap(find.byType(NavigationDestination).at(i));
       await settle(tester);
@@ -92,14 +92,17 @@ void main() {
     await finish(tester);
   });
 
-  testWidgets('台股分頁顯示自選股與漲跌（紅漲綠跌由設定控制，這裡只驗有渲染）', (tester) async {
+  testWidgets('自選頁混排顯示台股／美股／匯率，漲跌同時有絕對值與百分比', (tester) async {
     await pumpApp(tester);
     expect(find.byKey(const ValueKey('2330.TW')), findsOneWidget);
+    expect(find.byKey(const ValueKey('TSM')), findsOneWidget);
+    expect(find.byKey(const ValueKey('USDTWD=X')), findsOneWidget);
     // 名稱走「自選股存的 name」（seedIfEmpty 給的是 TSMC），價格/漲跌幅走 MoneyFormatter ——
     // 這三樣一起出現才證明「報價有進到清單」，而不只是清單渲染出來。
     expect(find.textContaining('TSMC'), findsWidgets);
     expect(find.textContaining('2,415'), findsWidgets);
-    expect(find.textContaining('+0.63%'), findsWidgets);
+    expect(find.text('+15.00 (+0.63%)'), findsOneWidget);
+    expect(find.text('+10.00 (+2.56%)'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await finish(tester);
   });
@@ -130,7 +133,7 @@ void main() {
 
   testWidgets('持股頁真的有金額與損益數字（不是空白，也不是 NaN）', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.byType(NavigationDestination).at(3));
+    await tester.tap(find.byType(NavigationDestination).at(1));
     await settle(tester);
 
     final text = tester.widgetList<Text>(find.byType(Text)).map((t) => t.data ?? '').join(' ');
@@ -160,7 +163,7 @@ void main() {
   testWidgets('通知權限被拒時，提醒頁要明說「不會送達」並給重試（不要讓使用者自己猜）', (tester) async {
     notif.granted = false;
     await pumpApp(tester);
-    await tester.tap(find.byType(NavigationDestination).at(4));
+    await tester.tap(find.byType(NavigationDestination).at(2));
     await settle(tester);
     expect(find.textContaining('Notifications are blocked'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -169,7 +172,7 @@ void main() {
 
   testWidgets('持股長按 → 編輯 → 改股數會寫回（加倉不必刪掉重填）', (tester) async {
     await pumpApp(tester);
-    await tester.tap(find.byType(NavigationDestination).at(3));
+    await tester.tap(find.byType(NavigationDestination).at(1));
     await settle(tester);
 
     expect(find.textContaining('1000 Shares'), findsWidgets, reason: '進編輯前的股數');
@@ -205,7 +208,7 @@ void main() {
     await PortfolioRepository(db).addHolding(
         symbol: '2330.TW', market: 'taiwan', ccy: 'TWD', shares: 2000, costPrice: 1500, costRate: 1);
     await pumpApp(tester);
-    await tester.tap(find.byType(NavigationDestination).at(3));
+    await tester.tap(find.byType(NavigationDestination).at(1));
     await settle(tester);
 
     // 第二筆故意較大 → 排在第一列，確定在可點擊區（太低會被底部導覽欄擋住）

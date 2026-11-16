@@ -13,13 +13,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'dQuote｜行情·匯率·持股';
 
   @override
-  String get tabTaiwan => '台股';
-
-  @override
-  String get tabAmerica => '美股';
-
-  @override
-  String get tabFx => '外匯';
+  String get tabWatchlist => '自選';
 
   @override
   String get tabPortfolio => '持股';

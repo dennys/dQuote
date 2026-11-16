@@ -3,24 +3,6 @@ library;
 
 enum Market { taiwan, america, fx, stockIndex, crypto }
 
-/// 底部分頁 → 這個分頁要顯示那些 market（key = 分頁 id）。
-///
-/// 產品只有三個市場分頁，但 `Market` 有五种，所以**一定要有個歸屬規則**：
-/// 指數歸台股分頁（加權指數理應和個股同列）、加密歸美股分頁（不為 BTC 另開一頁）。
-/// 之前是 `market == 分頁` 嚴格比對，結果 seed 進去的 `^TWII`（以及手動加的指數）
-/// **任何分頁都不顯示** —— 症狀是「加了但沒出現」。這條映射就是為了讓那種事不再發生。
-const taiwanTabMarkets = {Market.taiwan, Market.stockIndex};
-const americaTabMarkets = {Market.america, Market.crypto};
-const fxTabMarkets = {Market.fx};
-
-/// 分頁 id → 該顯示的 market（給測試與文件用；UI 直接吃上面三個常數，
-/// 因為 `map['taiwan']!` 不是 const 表達式，放不進 const widget 清單）。
-const Map<String, Set<Market>> marketTabs = {
-  'taiwan': taiwanTabMarkets,
-  'america': americaTabMarkets,
-  'fx': fxTabMarkets,
-};
-
 /// 走勢區間 → Yahoo 的 `range` / `interval` 參數對照。
 ///
 /// 檔位是刻意縮到 6 個（使用者只看得懂這幾個），名稱為 UI 字串，由 l10n 提供。

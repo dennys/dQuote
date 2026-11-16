@@ -3,33 +3,9 @@ import 'package:dquote/data/db/database.dart';
 import 'package:dquote/data/repositories/instrument_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 自選股的兩條容易悄悄壞掉的路：**分頁歸屬**與**手動排序**。
+/// 自選股的兩條容易悄悄壞掉的路：**市場歸屬（seed 的 market 字串要合法）**與**手動排序**。
 void main() {
-  group('分頁 ↔ market 對照', () {
-    test('三個分頁合起來要涵蓋所有 Market（日後加 enum 卻忘了歸屬就會出現「加了看不到」）', () {
-      final covered = marketTabs.values.expand((e) => e).toSet();
-      expect(covered, Market.values.toSet(), reason: '任何 Market 都必須有歸屬的分頁');
-    });
-
-    test('指數屬於台股分頁、加密屬於美股分頁（不為它們另開分頁）', () {
-      expect(taiwanTabMarkets, contains(Market.stockIndex));
-      expect(taiwanTabMarkets, contains(Market.taiwan));
-      expect(americaTabMarkets, contains(Market.crypto));
-      expect(fxTabMarkets, {Market.fx});
-    });
-
-    test('一個 market 只會出現在一個分頁（否則同一档会在两个 tab 重复出现）', () {
-      final seen = <Market>{};
-      for (final set in marketTabs.values) {
-        for (final m in set) {
-          expect(seen.contains(m), isFalse, reason: '$m 被分給兩個分頁');
-          seen.add(m);
-        }
-      }
-    });
-  });
-
-  test('seed 寫進去的 market 必須是合法的 Market 名字（打錯字 → 那档永遠不會出現在任何分頁）', () async {
+  test('seed 寫進去的 market 必須是合法的 Market 名字（打錯字 → 那档會被當成未知市場）', () async {
     final db = AppDatabase.memory();
     await db.seedIfEmpty();
     final rows = await db.select(db.instruments).get();
@@ -37,8 +13,6 @@ void main() {
     final legal = Market.values.map((e) => e.name).toSet();
     for (final r in rows) {
       expect(legal, contains(r.market), reason: '${r.symbol} 的 market="${r.market}" 不是 Market 的名字');
-      expect(marketTabs.values.any((s) => s.map((m) => m.name).contains(r.market)), isTrue,
-          reason: '${r.symbol} 沒有任何分頁會顯示它');
     }
     await db.close();
   });

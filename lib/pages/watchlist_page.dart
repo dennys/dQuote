@@ -13,12 +13,9 @@ import '../theme.dart';
 import 'quote_detail_page.dart';
 import 'settings_page.dart';
 
-/// 單一市場的自選股清單（台股／美股／外匯各一個實例，由底部導覽切換）。
+/// 自選清單：台股、美股、匯率混排在同一頁，順序由使用者拖曳決定。
 class WatchlistPage extends StatefulWidget {
-  const WatchlistPage({super.key, required this.markets});
-
-  /// 這個分頁要顯示的 market 集合（見 `marketTabs`：指數會一起出現在台股分頁）。
-  final Set<Market> markets;
+  const WatchlistPage({super.key});
 
   @override
   State<WatchlistPage> createState() => _WatchlistPageState();
@@ -33,8 +30,6 @@ class _WatchlistPageState extends State<WatchlistPage> with WidgetsBindingObserv
   late final Stream<List<Instrument>> _instruments = getIt<AppContainer>().instruments.watchAll();
   late final Stream<Map<String, Quote>> _quotes = getIt<AppContainer>().quotes.watchCached();
 
-  /// drift 欄位存的是 market 的**字串**，所以比對前先把分頁的 enum 轉成名字。
-  late final Set<String> _marketNames = widget.markets.map((m) => m.name).toSet();
   Future<DateTime?>? _updatedAt;
 
   /// 前景自動刷新間隔。背景交給 15 分鐘心跳（見 PLAN：使用者接受的準確度是 15 分鐘等級，
@@ -79,7 +74,7 @@ class _WatchlistPageState extends State<WatchlistPage> with WidgetsBindingObserv
 
   Future<List<String>> _symbols() async {
     final c = getIt<AppContainer>();
-    final rows = await c.instruments.byMarket(widget.markets.toList());
+    final rows = await c.instruments.all();
     return rows.map((e) => e.symbol).toList();
   }
 
@@ -89,9 +84,8 @@ class _WatchlistPageState extends State<WatchlistPage> with WidgetsBindingObserv
     final c = getIt<AppContainer>();
     try {
       await c.quotes.refresh(symbols);
-      if (widget.markets.contains(Market.fx)) {
-        await c.fx.ensureRates(knownFxBases);
-      }
+      // 匯率有 TTL 快取，未過期時 ensureRates 不會打網路，所以不必依分頁判斷
+      await c.fx.ensureRates(knownFxBases);
       if (mounted) setState(() => _updatedAt = getIt<AppContainer>().quotes.lastUpdated());
     } on Object {
       if (!silent && mounted) {
@@ -104,17 +98,10 @@ class _WatchlistPageState extends State<WatchlistPage> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final title = widget.markets.contains(Market.taiwan)
-        ? l.tabTaiwan
-        : widget.markets.contains(Market.america)
-            ? l.tabAmerica
-            : widget.markets.contains(Market.fx)
-                ? l.tabFx
-                : l.appTitle;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(l.tabWatchlist),
         actions: [
           IconButton(
             tooltip: l.settingsTitle,
@@ -134,9 +121,7 @@ class _WatchlistPageState extends State<WatchlistPage> with WidgetsBindingObserv
         child: StreamBuilder<List<Instrument>>(
           stream: _instruments,
           builder: (context, snap) {
-            final rows = (snap.data ?? const <Instrument>[])
-                .where((i) => _marketNames.contains(i.market))
-                .toList();
+            final rows = snap.data ?? const <Instrument>[];
             if (rows.isEmpty) return _empty(context, l);
             return StreamBuilder<Map<String, Quote>>(
               stream: _quotes,
@@ -322,7 +307,7 @@ class _QuoteTile extends StatelessWidget {
                   color: colors.forChange(quote?.change), fontWeight: FontWeight.w600),
             ),
             Text(
-              quote?.changePct == null ? '' : fmt.pct(quote!.changePct!),
+              quote == null ? '' : quoteChangeText(fmt, quote!),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colors.forChange(quote?.change)),
             ),
           ],

@@ -104,23 +104,11 @@ abstract class AppLocalizations {
   /// **'dQuote'**
   String get appTitle;
 
-  /// No description provided for @tabTaiwan.
+  /// No description provided for @tabWatchlist.
   ///
   /// In en, this message translates to:
-  /// **'Taiwan'**
-  String get tabTaiwan;
-
-  /// No description provided for @tabAmerica.
-  ///
-  /// In en, this message translates to:
-  /// **'US'**
-  String get tabAmerica;
-
-  /// No description provided for @tabFx.
-  ///
-  /// In en, this message translates to:
-  /// **'FX'**
-  String get tabFx;
+  /// **'Watchlist'**
+  String get tabWatchlist;
 
   /// No description provided for @tabPortfolio.
   ///

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
-import 'core/models.dart';
 import 'di.dart';
 import 'generated/l10n/app_localizations.dart';
 import 'pages/alerts_page.dart';
@@ -107,8 +106,8 @@ class DQuoteApp extends StatelessWidget {
           initialRoute: initialRoute,
           routes: {
             '/': (_) => const HomeShell(),
-            '/portfolio': (_) => const HomeShell(initialTab: 3),
-            '/alerts': (_) => const HomeShell(initialTab: 4),
+            '/portfolio': (_) => const HomeShell(initialTab: 1),
+            '/alerts': (_) => const HomeShell(initialTab: 2),
           },
           onGenerateRoute: (routeSettings) {
             final name = routeSettings.name ?? '/';
@@ -167,8 +166,7 @@ class _DeepLinkOnResumeState extends State<_DeepLinkOnResume> with WidgetsBindin
   Widget build(BuildContext context) => widget.child;
 }
 
-/// 底部導覽。三個市場分頁在 WatchlistPage 內部用 TabBar，所以「市場」與「功能」
-/// 不會擠在同一層。
+/// 底部導覽：自選（台股／美股／匯率混排）、持股、提醒。
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, this.initialTab = 0});
   final int initialTab;
@@ -187,9 +185,7 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: const [
-          WatchlistPage(markets: taiwanTabMarkets),
-          WatchlistPage(markets: americaTabMarkets),
-          WatchlistPage(markets: fxTabMarkets),
+          WatchlistPage(),
           PortfolioPage(),
           AlertsPage(),
         ],
@@ -198,9 +194,7 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: [
-          NavigationDestination(icon: const Icon(Icons.show_chart), label: l.tabTaiwan),
-          NavigationDestination(icon: const Icon(Icons.public), label: l.tabAmerica),
-          NavigationDestination(icon: const Icon(Icons.swap_horiz), label: l.tabFx),
+          NavigationDestination(icon: const Icon(Icons.show_chart), label: l.tabWatchlist),
           NavigationDestination(icon: const Icon(Icons.account_balance_wallet), label: l.tabPortfolio),
           NavigationDestination(icon: const Icon(Icons.notifications), label: l.tabAlerts),
         ],

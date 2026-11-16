@@ -11,9 +11,9 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
+import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
@@ -73,15 +73,26 @@ class DquoteWidget : GlanceAppWidget() {
                                 modifier = GlanceModifier.defaultWeight(),
                                 style = TextStyle(color = ColorProvider(Color(0xFFF2F5F8)), fontSize = 13.sp),
                             )
-                            Spacer(modifier = GlanceModifier.padding(6.dp))
-                            Text(
-                                row.price(),
-                                style = TextStyle(
-                                    color = ColorProvider(row.colorValue(payload.redIsUp)),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                ),
-                            )
+                            Column(
+                                modifier = GlanceModifier.padding(start = 6.dp),
+                                horizontalAlignment = Alignment.Horizontal.End,
+                            ) {
+                                Text(
+                                    row.price(),
+                                    style = TextStyle(
+                                        color = ColorProvider(row.colorValue(payload.redIsUp)),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                    ),
+                                )
+                                Text(
+                                    row.changeText(),
+                                    style = TextStyle(
+                                        color = ColorProvider(row.colorValue(payload.redIsUp)),
+                                        fontSize = 10.sp,
+                                    ),
+                                )
+                            }
                         }
                     }
                     Text(
@@ -121,11 +132,20 @@ object WidgetData {
         val symbol: String,
         val name: String,
         val price: Double,
+        val change: Double?,
         val changePct: Double?,
         val currency: String,
         val market: String,
     ) {
         fun title(): String = name.ifBlank { symbol }
+
+        /** 與 app 的 `quoteChangeText` 同規則：`+15.00 (+0.63%)`，匯率絕對值用 4 位小數。 */
+        fun changeText(): String {
+            val digits = if (market == "fx") 4 else 2
+            val abs = change?.let { signed(it, digits) }
+            val pct = changePct?.let { "(${signed(it, 2)}%)" }
+            return listOfNotNull(abs, pct).joinToString(" ")
+        }
 
         /** 幣別不能決定小數位：匯率（market == "fx"）的價格本身就是小數，
          *  只看 TWD 會把 USD/TWD 印成「32」。跟 Dart 的 `Market.fx` 判斷一致。 */
@@ -133,7 +153,7 @@ object WidgetData {
             if (currency == "TWD" && market != "fx") fmt(price, 0) else fmt(price, 2)
 
         /** 與 app 同一組色：紅漲緑跌由 payload 的 red_is_up 決定（設定頁那個開關）。 */
-        fun colorValue(redIsUp: Boolean): Int = when {
+        fun colorValue(redIsUp: Boolean): Color = when {
             (changePct ?: 0.0) > 0.0 -> if (redIsUp) RED_UP else GREEN_DOWN
             (changePct ?: 0.0) < 0.0 -> if (redIsUp) GREEN_DOWN else RED_UP
             else -> FLAT
@@ -148,9 +168,10 @@ object WidgetData {
         }
     }
 
-    private const val RED_UP = 0xFFEF5350.toInt()
-    private const val GREEN_DOWN = 0xFF66BB6A.toInt()
-    private const val FLAT = 0xFFB0BEC5.toInt()
+    // 必須用 Compose Color：ColorProvider(Int) 會被當成 @ColorRes 資源 ID，ARGB 值會讓小工具無法載入。
+    private val RED_UP = Color(0xFFEF5350)
+    private val GREEN_DOWN = Color(0xFF66BB6A)
+    private val FLAT = Color(0xFFB0BEC5)
 
     fun parse(raw: String?): Payload? {
         if (raw.isNullOrBlank()) return null
@@ -167,6 +188,7 @@ object WidgetData {
                         symbol = symbol,
                         name = r.optString("name"),
                         price = r.optDouble("price", 0.0),
+                        change = if (r.isNull("chg")) null else r.optDouble("chg", 0.0),
                         changePct = if (r.isNull("chg_pct")) null else r.optDouble("chg_pct", 0.0),
                         currency = r.optString("ccy", "TWD"),
                         market = r.optString("market", "taiwan"),
@@ -178,6 +200,9 @@ object WidgetData {
             null
         }
     }
+
+    private fun signed(v: Double, digits: Int): String =
+        (if (v > 0) "+" else "") + fmt(v, digits)
 
     private fun fmt(v: Double, digits: Int): String =
         java.text.NumberFormat.getNumberInstance(java.util.Locale.US).apply {

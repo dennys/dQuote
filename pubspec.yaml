@@ -46,9 +46,15 @@ dev_dependencies:
   flutter_lints: ^6.0.0        # analysis_options.yaml include 它，沒列會 include_file_not_found
   drift_dev: ^2.35.3           # 必須與 drift 版一致
   build_runner: ^2.17.1
+  flutter_launcher_icons: ^0.14.4 # 請至 pub.dev 確認最新版本
   # 測試只用 flutter_test + 手寫 fake（**不裝** mockito：會連帶鎖 build_runner/test 版，
   # 這是同 family 專案踩過的版本地獄）
 
 flutter:
   generate: true
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/images/icon.png"

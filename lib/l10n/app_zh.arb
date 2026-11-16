@@ -2,9 +2,7 @@
   "@@locale": "zh",
 
   "appTitle": "dQuote｜行情·匯率·持股",
-  "tabTaiwan": "台股",
-  "tabAmerica": "美股",
-  "tabFx": "外匯",
+  "tabWatchlist": "自選",
   "tabPortfolio": "持股",
   "tabAlerts": "提醒",
 

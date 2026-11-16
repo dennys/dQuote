@@ -79,6 +79,7 @@ class MoneyFormatter {
       signed(v, baseCcy, decimals: decimals, withSymbol: withSymbol);
 
   /// `HH:mm`，給「更新於」用；null → `—`
+  /// 先 `toLocal()`：DateFormat 不會換時區，UTC 時間會直接印成 UTC+0。
   static String clock(DateTime? t) =>
-      t == null ? '—' : DateFormat('HH:mm').format(t);
+      t == null ? '—' : DateFormat('HH:mm').format(t.toLocal());
 }
