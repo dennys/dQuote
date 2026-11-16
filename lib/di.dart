@@ -143,21 +143,33 @@ class AppContainer {
 @pragma('vm:entry-point')
 void heartbeatDispatcher() {
   Workmanager().executeTask((taskName, inputData) async {
-    try {
-      final container = await AppContainer.create();
-      final t = backgroundChannelTexts();
-      await container.notification.initialize(
-        digestName: t.digestName,
-        digestDesc: t.digestDesc,
-        priceName: t.priceName,
-        priceDesc: t.priceDesc,
-        pnlName: t.pnlName,
-        pnlDesc: t.pnlDesc,
-      );
-      await container.heartbeat.tick();
-      return true;
-    } on Object {
-      return false; // 回 false 讓 WorkManager 依退避政策重試
-    }
+    return _runBackgroundTick(force: false); // 回 false 讓 WorkManager 依退避政策重試
   });
+}
+
+/// 桌面小工具「↻」按鈕的進入點（home_widget 在背景 headless engine 呼叫）。
+/// 只有一個動作，所以只認 `dquote://refresh`；其他 URI 直接忽略。
+@pragma('vm:entry-point')
+Future<void> widgetInteractivityDispatcher(Uri? uri) async {
+  if (uri?.host != 'refresh') return;
+  await _runBackgroundTick(force: true);
+}
+
+Future<bool> _runBackgroundTick({required bool force}) async {
+  try {
+    final container = await AppContainer.create();
+    final t = backgroundChannelTexts();
+    await container.notification.initialize(
+      digestName: t.digestName,
+      digestDesc: t.digestDesc,
+      priceName: t.priceName,
+      priceDesc: t.priceDesc,
+      pnlName: t.pnlName,
+      pnlDesc: t.pnlDesc,
+    );
+    await container.heartbeat.tick(force: force);
+    return true;
+  } on Object {
+    return false;
+  }
 }

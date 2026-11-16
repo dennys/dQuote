@@ -8,6 +8,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -24,6 +25,7 @@ import androidx.glance.unit.ColorProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import es.antonborri.home_widget.HomeWidgetBackgroundReceiver
 import org.json.JSONObject
 
 /**
@@ -95,25 +97,46 @@ class DquoteWidget : GlanceAppWidget() {
                             }
                         }
                     }
-                    Text(
-                        "更新於 ${payload.updatedAtText()}",
-                        style = TextStyle(color = ColorProvider(Color(0xFF8A94A0)), fontSize = 10.sp),
-                    )
+                    Row(
+                        modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp),
+                        verticalAlignment = Alignment.Vertical.CenterVertically,
+                    ) {
+                        Text(
+                            "更新於 ${payload.updatedAtText()}",
+                            modifier = GlanceModifier.defaultWeight(),
+                            style = TextStyle(color = ColorProvider(Color(0xFF8A94A0)), fontSize = 10.sp),
+                        )
+                        Text(
+                            "↻",
+                            modifier = GlanceModifier.clickable(refreshAction(context)).padding(horizontal = 6.dp),
+                            style = TextStyle(color = ColorProvider(Color(0xFFB9C2CC)), fontSize = 14.sp),
+                        )
+                    }
                 }
             }
         }
     }
 
-    /** 點某一列 → deep link 開到那档的走勢頁（Dart 的 `main.dart` 用 initialRouteOf 解析）。 */
+    /** 點列 → deep link 開到那档的走勢頁（Dart 的 `main.dart` 用 initialRouteOf 解析）。 */
     private fun openQuote(context: Context, symbol: String) = actionStartActivity(
         Intent(Intent.ACTION_VIEW, Uri.parse("dquote://quote/${Uri.encode(symbol)}"))
             .setPackage(context.packageName)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
     )
 
+    /** 點「↻」→ 送給 home_widget 的背景 receiver，Dart 端 `widgetInteractivityDispatcher` 會重抓報價。 */
+    private fun refreshAction(context: Context) = actionSendBroadcast(
+        Intent(context, HomeWidgetBackgroundReceiver::class.java)
+            .setAction(HOME_WIDGET_BACKGROUND_ACTION)
+            .setData(Uri.parse("dquote://refresh")),
+    )
+
     companion object {
-        /** == home_widget 的 `HomeWidgetPlugin.PREFERENCES`（internal，無法直接引用）。 */
+        /** == home_widget 的 `PREFERENCES` 常數（internal，無法直接引用）。 */
         const val PREFERENCES = "HomeWidgetPreferences"
+
+        /** == home_widget 的 `HOME_WIDGET_BACKGROUND_ACTION`（private，無法直接引用）。 */
+        const val HOME_WIDGET_BACKGROUND_ACTION = "es.antonborri.home_widget.action.BACKGROUND"
     }
 }
 

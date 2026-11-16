@@ -58,6 +58,16 @@
                 android:resource="@xml/dquote_widget_info"/>
         </receiver>
 
+        <!-- 小工具「↻」按鈕：home_widget 的 library manifest 沒有宣告這個 receiver，要自己加。
+             Dart 端入口是 di.dart 的 widgetInteractivityDispatcher。 -->
+        <receiver
+            android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND"/>
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
