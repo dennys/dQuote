@@ -1,0 +1,107 @@
+name: dQuote
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches:
+      - "*"
+  workflow_dispatch:
+
+# 同一個分支只留最新一次跑；PR 再推就掐掉還在跑的舊的
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 與 dNeko / dHealth / 開發機一致（Flutter 3.47.9 / JDK 21）；升版只改這兩行
+  FLUTTER_VERSION: "3.47.9"
+  JAVA_VERSION: "21"
+
+jobs:
+  ci:
+    name: analyze / test / build APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: "gradle"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          cache-key: flutter-${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: Cache pub and gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/pubspec.lock', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      # --coverage 是必要的：不加就不會產 coverage/lcov.info，下面的 Codecov 步驟
+      # 會綠燈上傳一個根本不存在的檔。
+      - name: Run tests
+        run: flutter test --coverage
+
+      # 固定簽名金鑰（repo secrets：KEYSTORE_B64 = dquote.keystore 的 base64、
+      # KEY_PROPERTIES = key.properties 內容）。沒金鑰 release 會退回未簽章，覆蓋安裝會失敗。
+      - name: Restore signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
+        run: |
+          test -n "$KEYSTORE_B64" && test -n "$KEY_PROPERTIES" || { echo "::error::missing secrets KEYSTORE_B64/KEY_PROPERTIES"; exit 1; }
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/app/dquote.keystore
+          printf '%s\n' "$KEY_PROPERTIES" | tr -d '\r' > android/app/key.properties
+          prop(){ sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" android/app/key.properties | head -1 | tr -d '\r'; }
+          PW=$(prop storePassword); KP=$(prop keyPassword); ALIAS=$(prop keyAlias)
+          test -n "$PW" && test -n "$KP" && test -n "$ALIAS" || { echo "::error::KEY_PROPERTIES 需要 storePassword= / keyPassword= / keyAlias= 三行"; exit 1; }
+          echo "::add-mask::$PW"
+          echo "::add-mask::$KP"
+          keytool -list -keystore android/app/dquote.keystore -storepass "$PW" -alias "$ALIAS" > /dev/null
+
+      - name: Build debug APK
+        run: flutter build apk --debug --target-platform android-arm64
+
+      - name: Build release APK
+        run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
+
+      # 建置完再改名成 dQuote-<mode>-v<version>.apk（版號來自 pubspec）
+      - name: Rename APKs
+        run: |
+          cd build/app/outputs/flutter-apk
+          v=$(grep '^version:' ../../../../pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          mv app-release.apk "dQuote-release-v$v.apk"
+          mv app-debug.apk "dQuote-debug-v$v.apk"
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 14
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: dennys/dQuote

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -46,11 +48,24 @@ android {
     }
 
 
-    // release 的簽章與 R8 設定留給「真要出正式包」那天：這台主機只出 debug（比照同
-    // family 專案，AOT 需要 x86-64 主機的 gen_snapshot）。屆時比照 dHealth 讀 key.properties。
+    // keystore 與密碼都不進版控：本地放 android/app/{dquote.keystore, key.properties}，
+    // CI 由 secrets KEYSTORE_B64 / KEY_PROPERTIES 還原到同一路徑。缺 key.properties 時 release 會退回未簽章。
+    signingConfigs {
+        create("release") {
+            val propsFile = file("key.properties")
+            if (propsFile.exists()) {
+                val props = Properties().apply { propsFile.inputStream().use { load(it) } }
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
