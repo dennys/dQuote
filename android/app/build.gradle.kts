@@ -45,6 +45,11 @@ android {
         ndk {
             abiFilters.addAll(listOf("arm64-v8a"))
         }
+        // Keep widget classes for home_widget plugin
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro"
+        )
     }
 
 

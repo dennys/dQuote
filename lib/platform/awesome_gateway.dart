@@ -37,7 +37,7 @@ class AwesomeNotificationGateway implements NotificationGateway {
   }) async {
     if (_initialized) return;
     await _impl.initialize(
-      'resource://drawable/ic_stat_notification',
+      null,
       [
         NotificationChannel(
           channelKey: channelDigest,
