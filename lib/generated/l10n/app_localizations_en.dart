@@ -216,6 +216,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get removedFromWidget => 'Removed from home widget';
 
   @override
+  String get widgetRowLimit =>
+      'Home widget is full — raise the row limit in Settings to show this one.';
+
+  @override
   String get alertKindClosingDigest => 'Closing digest';
 
   @override

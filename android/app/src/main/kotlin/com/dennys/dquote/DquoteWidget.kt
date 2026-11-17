@@ -229,6 +229,9 @@ object WidgetData {
 
     private fun fmt(v: Double, digits: Int): String =
         java.text.NumberFormat.getNumberInstance(java.util.Locale.US).apply {
+            // 與 Dart 的 NumberFormat(decimalDigits:) 對齊：不設 minimum 會把 +15.00 縮成 +15、
+            // 匯率的 +0.1000 縮成 +0.1，小工具就跟 app 顯示兩個不一樣的數字。
+            minimumFractionDigits = digits
             maximumFractionDigits = digits
             minimumFractionDigits = digits
         }.format(v)

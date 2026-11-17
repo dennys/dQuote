@@ -326,8 +326,8 @@ class _QuoteTile extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final c = getIt<AppContainer>();
     final next = !instrument.inWidget;
-    await c.instruments.setInWidget(instrument.symbol, next);
-    await c.heartbeat.refreshWidget();
-    messenger.showSnackBar(SnackBar(content: Text(next ? l.addedToWidget : l.removedFromWidget)));
+    final shown = await c.heartbeat.setInWidget(instrument.symbol, next);
+    messenger.showSnackBar(SnackBar(
+        content: Text(!next ? l.removedFromWidget : shown ? l.addedToWidget : l.widgetRowLimit)));
   }
 }

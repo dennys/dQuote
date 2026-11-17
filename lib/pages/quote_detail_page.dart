@@ -72,11 +72,11 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
     final messenger = ScaffoldMessenger.of(context);
     final c = getIt<AppContainer>();
     final next = !_inWidget;
-    await c.instruments.setInWidget(widget.symbol, next);
-    await c.heartbeat.refreshWidget();
+    final shown = await c.heartbeat.setInWidget(widget.symbol, next);
     if (!mounted) return;
     setState(() => _inWidget = next);
-    messenger.showSnackBar(SnackBar(content: Text(next ? l.addedToWidget : l.removedFromWidget)));
+    messenger.showSnackBar(SnackBar(
+        content: Text(!next ? l.removedFromWidget : shown ? l.addedToWidget : l.widgetRowLimit)));
   }
 
   /// 同檔多筆買進 → 顯示加權平均成本（不是第一筆，那會誤導）。

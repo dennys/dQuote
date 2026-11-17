@@ -47,10 +47,10 @@ native 編譯的版本，讓 aarch64 主機也能 build；CI／正式版用乾�
 | `alert_engine_test.dart` | **re-arm 去重**：條件成立期間不重複轟，回到未成立才重新武裝 |
 | `quote_repository_test.dart` | 快取優先、單檔失敗不拖垮整批、走勢快取與 TTL、**網路壞掉時退回舊圖** |
 | `fx_service_test.dart` | 匯率要有 TTL：抓過一次就永遠不重抓 → 總資產會用舊匯率算 |
-| `instrument_repository_test.dart` | 分頁 ↔ market 歸屬（加了卻哪個分頁都看不到的那個坑）、拖曳排序寫回 |
+| `instrument_repository_test.dart` | seed 的 `market` 必須是合法的 `Market` 名字（打錯字會被當成未知市場）、拖曳排序寫回 |
 | `heartbeat_test.dart` | 心跳整合：時段判斷 → 抓價 → 觸發 → 日報冪等 → **日報開關** → 小工具發布（含列數上限） |
 | `widget_data_test.dart` | Flutter ↔ Kotlin 小工具的 JSON 契約（改欄位名會被擋） |
-| `app_smoke_test.dart` | 五個分頁＋個股頁＋設定頁真的 pump 得起來（**這支抓到過無限重建迴圈**，見下）、同檔買兩次改對列、紅漲綠跌真的換色、通知 deep link |
+| `app_smoke_test.dart` | 三個分頁＋個股頁＋設定頁真的 pump 得起來（**這支抓到過無限重建迴圈**，見下）、同檔買兩次改對列、紅漲綠跌真的換色、通知 deep link、長按進出桌面小工具 |
 | `repo_hygiene_test.dart` | 版控裡不許出現機器名／內網 IP／帳號路徑（repo 是 public） |
 
 `test/fakes.dart` 提供假的報價來源／通知閘門／小工具橋，所以心跳可以在固定假時間下整條跑完。
@@ -63,8 +63,9 @@ native 編譯的版本，讓 aarch64 主機也能 build；CI／正式版用乾�
 - **drift 的 stream 在 `build()` 裡建立** → StreamBuilder 每次重建都重新訂閱 → drift 推初值
   → setState → 無限重建。手機上會把一顆 CPU 燒滿、電吃掉一半，`analyze` 完全查不出來。
   守則：**`stream:`／`future:` 的參數一律來自 State 欄位（`late final`），不在 build 裡 new**。
-- **seed 的 market 打成 `'index'`（正確是 `'stockIndex'`）**，加上分頁是字串比對 → 加權指數
-  在**任何**分頁都不顯示。現在 seed 一律用 `Market` 常數，並有測試掃「每一筆都必須有分頁會顯示」。
+- **seed 的 market 打成 `'index'`（正確是 `'stockIndex'`）**，而存進 db 的是 market 的**字串** →
+  那档被當成未知市場，小工具與日報的格式判斷跟著錯。現在 seed 一律用 `Market` 常數，
+  並有測試掃「每一筆的 market 都必須是 `Market` 的名字」。
 - 可買力沒把外幣價格乘上匯率（`sharesAffordable`）。
 - 匯率幣別表漏了 `TWD`，導致 `USDTWD` 被當成美股 ticker。
 - 收盤日報用來源給的名字（Yahoo 對某些台股不给 name → 日報出現代號而不是 Stocks 名）。
@@ -79,7 +80,8 @@ native 編譯的版本，讓 aarch64 主機也能 build；CI／正式版用乾�
   現在它就是日報的開關（`Heartbeat` 讀那條規則的 `enabled`；沒建規則 = 預設開）。
 - 通知的 `payload['deep']` 沒人被讀 → 點通知只是把 app 帶到前景。現在 `takePendingDeepLink()`
   在啟動與 resume 時各問一次（resume 那條很重要：熱啟動**不會重跑 `main()`**）。
-- 三個自選股分頁各一個 30 秒 `Timer.periodic`，app 進背景後**還是會跑**（Android 不凍 isolate）
+- 三個自選股分頁各一個 30 秒 `Timer.periodic`，app 進背景後**還是會跑**（Android 不凍 isolate；
+  後來三個分頁合併成單一自選頁，現在只剩一個 timer，守則不變）
   → 15 分鐘心跳的省電設計被抵銷。現在用 `WidgetsBindingObserver` 只在前景輪詢。
 - 走勢圖：快取過期 + 網路壞掉 = 錯誤頁（明明還有圖可畫）。現在 `history()` 退回快取，
   從未抓過才把錯誤丟給 UI。
@@ -132,7 +134,7 @@ android/app/src/main/kotlin/com/dennys/dquote/
 - 提醒的「發過了沒」存在 `AlertLogs`：條件成立期間保持解除武裝，回到未成立才重新武裝。
 - 收盤日報的開關就是提醒頁那條 `closingDigest` 規則（`enabled=false` 就不發；**沒建這條 = 預設開**）。
 - 通知發送**失敗時不標記已發**，下次 tick 會重試（不會靜態吞掉日報）。
-- 前景只在前景輪詢：三個分頁各一個 30 秒 `Timer.periodic`，用 `WidgetsBindingObserver` 在
+- 前景只在前景輪詢：自選頁一個 30 秒 `Timer.periodic`，用 `WidgetsBindingObserver` 在
   `resumed` 起、其他狀態停 —— Dart 的 timer 在 Android 背景**不會被凍結**，不管就會一直打網路。
 - 設定頁有兩顆按鈕：「立即執行一次檢查」在 UI isolate 裡跑心跳（看得到結果數字），
   「經排程（WorkManager）執行一次」走真正上線那條路（另一個 isolate，會自己 initialize 通知 channel）。
@@ -142,13 +144,16 @@ android/app/src/main/kotlin/com/dennys/dquote/
 
 ## 已知取捨 / 未做
 
-- **還沒上過真機**。通知權限、排程在 Doze 下的實際延遲、小工具點擊與顏色，都需要 Pixel 8 實測。
+- **真機只測過一部分**。已驗：通知權限（被拒時其他功能不受影響）、設定頁「立即執行一次檢查」、
+      小工具新增／顯示／紅綠／點擊進頁、斷網降級。**還沒驗**：小工具「↻」的背景刷新、
+      WorkManager 的 15 分鐘排程（Doze 下）、通知點擊三條路、re-arm 只發一次 —— 見 TODO 第 1 期。
 - 小工具點擊在 app 已於背景運行時只把 app 帶到前景，不會跳到該档（`FlutterActivity` 不會把
   新 intent 轉給 Dart）。要修就得加 `onNewIntent` + MethodChannel。（通知點擊已走 payload 的
   deep link，不需要 `onNewIntent`。）
 - 小工具的列數與紅漲綠跌是**心跳發布時**帶過去的，改了設定要等下一次心跳（最多 15 分鐘）才生效；
   app 內的顏色是立即生效。
-- 指數跟加密**不另開分頁**：指數顯示在台股分頁、加密顯示在美股分頁（見 `marketTabs`）。
+- 指數跟加密**不另開分類**：2026-11-16 起自選是**單一混排頁**（台股／美股／匯率同頁，順序由使用者拖曳），
+  `^TWII` 與加密就照 `sortOrder` 排在那裡；舊的三頁映射（`marketTabs`）已整個刪除。
 - 代號解析是純規則：台積電股票代码一律 `2330.TW`（上櫃 `.TWO` 實測不可用，也改寫 `.TW`）；
   `TSMC` 這種不存在，美股 ADR 要用 `TSM`。不做中文搜尋 —— Yahoo 的搜尋對中文不可靠。
 - 批量報價 API（`v7/finance/quote`）對一般使用者關閉（回 `Unauthorized`），所以多档請求是

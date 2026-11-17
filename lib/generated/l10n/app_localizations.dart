@@ -500,6 +500,12 @@ abstract class AppLocalizations {
   /// **'Removed from home widget'**
   String get removedFromWidget;
 
+  /// No description provided for @widgetRowLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Home widget is full — raise the row limit in Settings to show this one.'**
+  String get widgetRowLimit;
+
   /// No description provided for @alertKindClosingDigest.
   ///
   /// In en, this message translates to:

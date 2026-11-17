@@ -103,6 +103,8 @@ void main() {
     expect(find.textContaining('2,415'), findsWidgets);
     expect(find.text('+15.00 (+0.63%)'), findsOneWidget);
     expect(find.text('+10.00 (+2.56%)'), findsOneWidget);
+    // 匯率那列才是 `quoteChangeText` 多帶一個 decimals 參數的唯一理由（絕對值 4 位）。
+    expect(find.text('+0.1000 (+0.30%)'), findsOneWidget, reason: '匯率絕對漲跌要用 4 位小數');
     expect(tester.takeException(), isNull);
     await finish(tester);
   });
@@ -127,6 +129,28 @@ void main() {
       await tester.tap(back.first);
       await settle(tester);
     }
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
+
+  testWidgets('長按自選股 → 進出桌面小工具；列數滿了要明說，不能假裝已加入', (tester) async {
+    await pumpApp(tester);
+    // seed 的前 4 档在小工具裡，滑桿預設 4 列 → 已經滿了。
+    await tester.longPress(find.byKey(const ValueKey('NVDA')));
+    await settle(tester);
+    expect(widgetBridge.lastPayload?.rows.map((r) => r.symbol), isNot(contains('NVDA')),
+        reason: 'forWidget 照 sortOrder 截前 4 列，NVDA 排最後 → 不會出現在小工具');
+    expect(find.textContaining('Home widget is full'), findsOneWidget,
+        reason: '不能只給「已加入」，那會讓使用者以為按了沒效果');
+
+    // 關掉一列 → 剛才被截掉的 NVDA 自動補上來（證明重發真的走到 WidgetBridge）。
+    await tester.longPress(find.byKey(const ValueKey('2330.TW')));
+    await settle(tester);
+    expect(widgetBridge.lastPayload?.rows.map((r) => r.symbol), contains('NVDA'));
+    // snackbar 是排隊的（上一條還在上面時新的不會插隊），所以得先讓它過場。
+    await tester.pump(const Duration(seconds: 5));
+    await settle(tester);
+    expect(find.textContaining('Removed from home widget'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await finish(tester);
   });

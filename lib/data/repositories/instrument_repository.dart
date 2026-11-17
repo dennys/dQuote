@@ -15,14 +15,6 @@ class InstrumentRepository {
   Future<List<Instrument>> all() =>
       (_db.select(_db.instruments)..orderBy(_ordering)).get();
 
-  Future<List<Instrument>> byMarket(List<Market> markets) async {
-    final names = markets.map((m) => m.name).toList();
-    return (_db.select(_db.instruments)
-          ..where((t) => t.market.isIn(names))
-          ..orderBy(_ordering))
-        .get();
-  }
-
   /// 桌面小工具要顯示的那幾档（`in_widget` + 排序 + 上限）
   Future<List<Instrument>> forWidget({int limit = 6}) async {
     final q = _db.select(_db.instruments)

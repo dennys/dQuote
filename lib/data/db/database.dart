@@ -163,9 +163,9 @@ class AppDatabase extends _$AppDatabase {
   Future<void> seedIfEmpty() async {
     final count = await (select(instruments)..limit(1)).get();
     if (count.isNotEmpty) return;
-    // market 一律用 `Market` 常數（**不要手打字串**）：分頁是照 `Market.*.name` 過濾的，
-    // 打錯一個字（曾經寫成 'index' 而不是 'stockIndex'）會讓那档**在任何分頁都不顯示**，
-    // 症狀是「seed 進去了但 UI 永遠看不到」。有測試擋著（instrument_repository_test）。
+    // market 一律用 `Market` 常數（**不要手打字串**）：UI、小工具、日報都是拿存的
+    // `Market.*.name` 判格式與歸屬，打錯一個字（曾經寫成 'index' 而不是 'stockIndex'）
+    // 會讓那档被當成未知市場。有測試擋著（instrument_repository_test）。
     const seeds = <(String, String, String, Market)>[
       // (symbol, name, currency, market)
       ('^TWII', '加權指數', 'TWD', Market.stockIndex),

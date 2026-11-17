@@ -215,6 +215,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get removedFromWidget => '已移出桌面小工具';
 
   @override
+  String get widgetRowLimit => '小工具列數已滿 — 到設定頁調高列數才會顯示這档。';
+
+  @override
   String get alertKindClosingDigest => '收盤日報';
 
   @override

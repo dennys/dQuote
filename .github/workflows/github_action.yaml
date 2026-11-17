@@ -73,8 +73,8 @@ jobs:
           printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/app/dquote.keystore
           printf '%s\n' "$KEY_PROPERTIES" | tr -d '\r' > android/app/key.properties
           prop(){ sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" android/app/key.properties | head -1 | tr -d '\r'; }
-          PW=$(prop storePassword); KP=$(prop keyPassword); ALIAS=$(prop keyAlias)
-          test -n "$PW" && test -n "$KP" && test -n "$ALIAS" || { echo "::error::KEY_PROPERTIES 需要 storePassword= / keyPassword= / keyAlias= 三行"; exit 1; }
+          SF=$(prop storeFile); PW=$(prop storePassword); KP=$(prop keyPassword); ALIAS=$(prop keyAlias)
+          test -n "$SF" && test -n "$PW" && test -n "$KP" && test -n "$ALIAS" || { echo "::error::KEY_PROPERTIES 需要 storeFile= / storePassword= / keyPassword= / keyAlias= 四行"; exit 1; }
           echo "::add-mask::$PW"
           echo "::add-mask::$KP"
           keytool -list -keystore android/app/dquote.keystore -storepass "$PW" -alias "$ALIAS" > /dev/null

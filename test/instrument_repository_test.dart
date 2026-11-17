@@ -46,11 +46,11 @@ void main() {
       expect(rows.map((e) => e.sortOrder), [0, 1, 2]);
     });
 
-    test('只排這個分頁的代號，不會動到別人', () async {
+    test('只排清單上的代號，不會動到別人', () async {
       await repo.add(symbol: 'TSM', name: 'TSMC ADR', currency: 'USD', market: Market.america);
       await repo.reorder(['0050.TW', '2330.TW', '2317.TW']);
-      final us = await repo.byMarket([Market.america]);
-      expect(us.single.symbol, 'TSM', reason: '美股那档不該被台股的拖曳排動');
+      expect((await repo.all()).map((e) => e.sortOrder), [0, 1, 2, 1000],
+          reason: 'TSM 不在重排清單裡，sortOrder 不該被動到');
     });
   });
 }

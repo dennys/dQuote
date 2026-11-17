@@ -245,6 +245,16 @@ class Heartbeat {
   MoneyFormatter _formatter(PortfolioBundle b) =>
       MoneyFormatter(baseCcy: baseCcy, rateOf: (c) => b.rates[c]);
 
+  /// 開關某档要不要進小工具，並立刻重發。回傳「開啟時它有沒有真的出現在小工具上」——
+  /// 超過設定頁那個列數上限時 `forWidget` 會截掉，呼叫端要換文案，別讓使用者以為按了沒效果。
+  Future<bool> setInWidget(String symbol, bool value) async {
+    await instruments.setInWidget(symbol, value);
+    await refreshWidget();
+    if (!value) return false;
+    final rows = await instruments.forWidget(limit: await settings.widgetRows());
+    return rows.any((i) => i.symbol == symbol);
+  }
+
   /// 不打網路，只用快取的報價重發小工具：自選股增刪、改小工具開關後馬上反映，不用等下次心跳。
   Future<void> refreshWidget() async {
     try {
@@ -264,8 +274,11 @@ class Heartbeat {
         if (quoteMap[i.symbol] != null) _row(quoteMap[i.symbol]!, displayName: _displayName(i, quoteMap[i.symbol]!)),
     ];
     if (rows.isEmpty) return;
+    // 「更新於」用快取批次的時間，不是現在：這一條路（refreshWidget、盤中跳過抓價的 tick）
+    // 拿的是幾十分鐘前的報價，打 clock() 會讓小工具報一個比 app 還新的時間。
+    final updatedAt = await quotes.lastUpdated() ?? clock();
     await widget.publish(WidgetPayload(
-      updatedAt: clock().millisecondsSinceEpoch ~/ 1000,
+      updatedAt: updatedAt.millisecondsSinceEpoch ~/ 1000,
       baseCcy: 'TWD',
       redIsUp: await settings.redIsUp(),
       rows: rows,
