@@ -184,7 +184,7 @@ object WidgetData {
                 Math.abs(price) < 1.0 && price != 0.0 -> 4
                 market == "fx" -> 3 // app 的自選頁對匯率固定 3 位
                 currency.uppercase() in ZERO_DECIMAL_CCYS -> 0
-                Math.abs(price) >= 1000.0 && price == price.roundToDouble() -> 0
+                Math.abs(price) >= 1000.0 && Math.floor(price) == price -> 0
                 else -> 2
             }
             return fmt(price, digits)

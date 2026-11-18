@@ -131,13 +131,22 @@ class AwesomeNotificationGateway implements NotificationGateway {
         id: DateTime.now().microsecondsSinceEpoch.remainder(1000000),
         channelKey: channelKey,
         title: title,
-        body: body,
+        body: notificationBodyToHtml(body),
         notificationLayout: NotificationLayout.BigText,
         payload: payload,
       ),
     );
   }
 }
+
+/// awesome_notifications 的 Android 端把 body 當 HTML 排版（`Html.fromHtml`），純文字的 `\n`
+/// 會被折成空白，所以改用 `<br>` 斷行；每行先 escape，股名或別名裡的 `<`、`&` 才不會被當成標籤。
+@visibleForTesting
+String notificationBodyToHtml(String body) =>
+    body.split('\n').map(_escapeHtml).join('<br>');
+
+String _escapeHtml(String s) =>
+    s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 /// 背景 isolate 沒有 BuildContext，用裝置語系直接取翻譯（比照同 family 專案的做法）。
 AppLocalizations localizedLocal() =>
