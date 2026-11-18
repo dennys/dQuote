@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
 import '../app.dart' show SettingsController;
-import '../di.dart';
 import '../domain/fx_service.dart';
 import 'models.dart';
 import 'money.dart';
