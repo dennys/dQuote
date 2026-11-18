@@ -7,6 +7,7 @@ import 'generated/l10n/app_localizations.dart';
 import 'pages/alerts_page.dart';
 import 'pages/portfolio_page.dart';
 import 'pages/quote_detail_page.dart';
+import 'domain/fx_service.dart';
 import 'pages/watchlist_page.dart';
 import 'theme.dart';
 
@@ -88,7 +89,11 @@ class DQuoteApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => SettingsController(getIt<AppContainer>()),
-      child: Consumer<SettingsController>(
+      // 匯率也做成 ChangeNotifier + provider：匯率**晚到**時（開機沒網、後來才有）已經畫出來的
+      // 頁面會自己換數字，而不是等別的東西變動才重建（見 core/app_format.dart 的 select）。
+      child: ChangeNotifierProvider<FxService>.value(
+        value: getIt<AppContainer>().fx,
+        child: Consumer<SettingsController>(
         builder: (context, settings, _) => MaterialApp(
           navigatorKey: appNavigatorKey,
           onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
@@ -122,6 +127,7 @@ class DQuoteApp extends StatelessWidget {
           builder: (context, child) => _DeepLinkOnResume(child: child ?? const SizedBox.shrink()),
         ),
       ),
+      ), // ChangeNotifierProvider<FxService>
     );
   }
 }
@@ -178,21 +184,32 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   late int _index = widget.initialTab;
 
+  /// **只建立開過的分頁**（開過之後就留在樹裡，狀態不丟）。
+  ///
+  /// 三個一起建的話，`AlertsPage.initState` 會在使用者還站在自選頁時就彈通知權限 —— 與
+  /// README/`alerts_page.dart` 的註解相反，而且太早問會被拒得莫名其妙，整個提醒功能卻全靠
+  /// 這個權限。順帶也省掉啟動時三個分頁一起抓價/查庫。
+  late final Set<int> _opened = {widget.initialTab};
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    Widget tab(int i, Widget page) => _opened.contains(i) ? page : const SizedBox.shrink();
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [
-          WatchlistPage(),
-          PortfolioPage(),
-          AlertsPage(),
+        children: [
+          tab(0, const WatchlistPage()),
+          tab(1, const PortfolioPage()),
+          tab(2, const AlertsPage()),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) => setState(() {
+          _index = i;
+          _opened.add(i);
+        }),
         destinations: [
           NavigationDestination(icon: const Icon(Icons.show_chart), label: l.tabWatchlist),
           NavigationDestination(icon: const Icon(Icons.account_balance_wallet), label: l.tabPortfolio),

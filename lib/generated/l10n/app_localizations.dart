@@ -500,6 +500,66 @@ abstract class AppLocalizations {
   /// **'Add alert'**
   String get addAlertTitle;
 
+  /// No description provided for @digestTwTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TW close'**
+  String get digestTwTitle;
+
+  /// No description provided for @digestUsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'US close'**
+  String get digestUsTitle;
+
+  /// No description provided for @digestTotalAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get digestTotalAssets;
+
+  /// No description provided for @digestPnl.
+  ///
+  /// In en, this message translates to:
+  /// **'P/L'**
+  String get digestPnl;
+
+  /// No description provided for @digestGainers.
+  ///
+  /// In en, this message translates to:
+  /// **'Top gainers'**
+  String get digestGainers;
+
+  /// No description provided for @digestLosers.
+  ///
+  /// In en, this message translates to:
+  /// **'Top losers'**
+  String get digestLosers;
+
+  /// No description provided for @digestIndex.
+  ///
+  /// In en, this message translates to:
+  /// **'Index'**
+  String get digestIndex;
+
+  /// No description provided for @digestUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated'**
+  String get digestUpdated;
+
+  /// No description provided for @digestNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'no data'**
+  String get digestNoData;
+
+  /// No description provided for @digestAlertTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'dQuote alert'**
+  String get digestAlertTitle;
+
   /// No description provided for @addToWidget.
   ///
   /// In en, this message translates to:

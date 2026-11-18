@@ -68,8 +68,14 @@ void main() {
     test('台報：13:34 不發、13:35 起發，key 帶交易日', () {
       expect(cal.twDigestKey(DateTime.utc(2026, 11, 20, 5, 34)), isNull);
       expect(cal.twDigestKey(DateTime.utc(2026, 11, 20, 5, 35)), 'TW-2026-11-20');
-      expect(cal.twDigestKey(DateTime.utc(2026, 11, 20, 15, 0)), 'TW-2026-11-20',
-          reason: '被 Doze 延後到晚上仍能補發');
+      // 21:59（台北）之前仍可補發；過 22:00 就認賠放棄這一份（深夜發「今日收盤」像壞掉，
+      // 而且那時段沒人看手機）。代價：那天漏日報，但收盤價在自選股/個股頁都還看得到。
+      expect(cal.twDigestKey(DateTime.utc(2026, 11, 20, 13, 59)), 'TW-2026-11-20',
+          reason: '被 Doze 延後到傍晚仍能補發');
+      expect(cal.twDigestKey(DateTime.utc(2026, 11, 20, 14, 0)), isNull,
+          reason: '台北 22:00 整點就是封門點（含）');
+      expect(cal.twDigestKey(DateTime.utc(2026, 11, 20, 15, 0)), isNull,
+          reason: '台北 23:00 已過封門時間 → 不發');
       expect(cal.twDigestKey(DateTime.utc(2026, 11, 21, 5, 40)), isNull, reason: '週六');
     });
 

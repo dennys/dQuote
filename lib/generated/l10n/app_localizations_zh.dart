@@ -215,6 +215,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addAlertTitle => '新增提醒';
 
   @override
+  String get digestTwTitle => '台股收盤';
+
+  @override
+  String get digestUsTitle => '美股收盤';
+
+  @override
+  String get digestTotalAssets => '總資產';
+
+  @override
+  String get digestPnl => '損益';
+
+  @override
+  String get digestGainers => '漲幅前 3';
+
+  @override
+  String get digestLosers => '跌幅前 3';
+
+  @override
+  String get digestIndex => '大盤';
+
+  @override
+  String get digestUpdated => '更新於';
+
+  @override
+  String get digestNoData => '無資料';
+
+  @override
+  String get digestAlertTitle => 'dQuote 提醒';
+
+  @override
   String get addToWidget => '加入桌面小工具';
 
   @override

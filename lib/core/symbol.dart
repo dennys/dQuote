@@ -76,7 +76,7 @@ ParsedSymbol? parseSymbol(String raw) {
       if (!_isLetters(a) || !_isLetters(b) || a.length != 3 || b.length != 3) return null;
       // 本 app 只顯示「1 外幣 = ? 台幣」這個方向，所以把 TWD/USD 這類反向輸入對調。
       if (a == 'TWD') return fxSymbol(b);
-      return fxSymbol(a, b == 'TWD' ? 'TWD' : b);
+      return fxSymbol(a, b);
     }
   }
 

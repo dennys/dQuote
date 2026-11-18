@@ -216,6 +216,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addAlertTitle => 'Add alert';
 
   @override
+  String get digestTwTitle => 'TW close';
+
+  @override
+  String get digestUsTitle => 'US close';
+
+  @override
+  String get digestTotalAssets => 'Total';
+
+  @override
+  String get digestPnl => 'P/L';
+
+  @override
+  String get digestGainers => 'Top gainers';
+
+  @override
+  String get digestLosers => 'Top losers';
+
+  @override
+  String get digestIndex => 'Index';
+
+  @override
+  String get digestUpdated => 'Updated';
+
+  @override
+  String get digestNoData => 'no data';
+
+  @override
+  String get digestAlertTitle => 'dQuote alert';
+
+  @override
   String get addToWidget => 'Add to home widget';
 
   @override

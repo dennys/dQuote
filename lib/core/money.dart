@@ -29,8 +29,10 @@ class MoneyFormatter {
   static String symbolOf(String ccy) => _symbols[ccy.toUpperCase()] ?? '${ccy.toUpperCase()} ';
 
   int _decimalsFor(double v, String ccy, int? explicit) {
+    // 先決：小於 1 的數一律 4 位，**連呼叫端指定的位數也不給蓋**。自選頁對匯率固定要 3 位，
+    // 但 JPYTWD 0.2043 用 3 位會印成 0.204 —— 那是另一個數字，不是同一數字的縮寫。
+    if (v.abs() < 1 && v != 0) return 4;
     if (explicit != null) return explicit;
-    if (v.abs() < 1 && v != 0) return 4; // 匯率小數（JPYTWD 0.2043）
     if (zeroDecimalCurrencies.contains(ccy.toUpperCase())) return 0;
     if (v.abs() >= 1000 && v == v.roundToDouble()) return 0;
     return 2;

@@ -49,7 +49,7 @@ void main() {
 
   tearDown(() async => db.close());
 
-  Future<Heartbeat> hb(DateTime at) async {
+  Future<Heartbeat> hb(DateTime at, {String baseCcy = 'TWD'}) async {
     final fx = FxService(quotes);
     final portfolio = PortfolioService(db: db, portfolio: PortfolioRepository(db), quotes: quotes, fx: fx);
     return Heartbeat(
@@ -63,6 +63,7 @@ void main() {
       fx: fx,
       notification: notif,
       widget: widgetBridge,
+      baseCcy: baseCcy,
     );
   }
 
@@ -77,10 +78,19 @@ void main() {
     await instruments.add(symbol: 'TSM', name: 'TSMC ADR', currency: 'USD', market: Market.america);
   }
 
+
+  test('小工具 payload 的基礎幣別用注入的那個（不是寫死 TWD）', () async {
+    await seedWatchlist();
+    await (await hb(afterClose, baseCcy: 'USD')).tick(strings: zhStrings);
+    expect(widgetBridge.lastPayload, isNotNull, reason: '有勾選就要發得出來');
+    expect(widgetBridge.lastPayload!.baseCcy, 'USD',
+        reason: '以後換基礎幣別時，小工具不能還把自己標成台幣');
+  });
+
   group('報價抓取', () {
     test('盤中 tick 會抓自選股並發布給桌面小工具', () async {
       await seedWatchlist();
-      final result = await (await hb(inTradSession)).tick();
+      final result = await (await hb(inTradSession)).tick(strings: zhStrings);
 
       expect(result.skippedFetch, isFalse);
       expect(source.requested, containsAll(<String>['2330.TW', '0050.TW', 'TSM']));
@@ -90,7 +100,7 @@ void main() {
 
     test('非盤中且沒有日報要發 → 不去抓報價（省電、省 request）', () async {
       await seedWatchlist();
-      final result = await (await hb(weekendNight)).tick();
+      final result = await (await hb(weekendNight)).tick(strings: zhStrings);
       expect(result.skippedFetch, isTrue);
       expect(source.requested, isEmpty);
     });
@@ -98,7 +108,7 @@ void main() {
     test('單檔失敗不會讓整批失敗（其他档照樣更新）', () async {
       await seedWatchlist();
       source.failing.add('0050.TW');
-      final result = await (await hb(inTradSession)).tick();
+      final result = await (await hb(inTradSession)).tick(strings: zhStrings);
       final cached = await quotes.cached();
       expect(cached.keys, containsAll(<String>['2330.TW', 'TSM']));
       expect(result.errors, isEmpty, reason: '單檔查無不是心跳的錯誤');
@@ -114,29 +124,29 @@ void main() {
     test('第一次觸發、第二次不重複發；跌回去後再突破會再發', () async {
       await addAboveAlert();
       // 2415 > 2400
-      var r = await (await hb(inTradSession)).tick();
+      var r = await (await hb(inTradSession)).tick(strings: zhStrings);
       expect(r.fired, 1);
       expect(notif.alerts.length, 1);
 
-      r = await (await hb(inTradSession)).tick();
+      r = await (await hb(inTradSession)).tick(strings: zhStrings);
       expect(r.fired, 0, reason: '還在門檻上 → 不重複轟使用者');
       expect(notif.alerts.length, 1);
 
       // 跌回 2380 → clear（重新武裝）
       source.quotes['2330.TW'] = quoteOf('2330.TW', 2380, prev: 2400);
-      r = await (await hb(inTradSession)).tick();
+      r = await (await hb(inTradSession)).tick(strings: zhStrings);
       expect(r.cleared, 1);
 
       // 再突破 → 又發
       source.quotes['2330.TW'] = quoteOf('2330.TW', 2450, prev: 2400);
-      r = await (await hb(inTradSession)).tick();
+      r = await (await hb(inTradSession)).tick(strings: zhStrings);
       expect(r.fired, 1);
       expect(notif.alerts.length, 2);
     });
 
     test('通知內文一節一行（不擠成一行）', () async {
       await addAboveAlert();
-      await (await hb(inTradSession)).tick();
+      await (await hb(inTradSession)).tick(strings: zhStrings);
       final body = notif.alertBodies.single;
       expect(body.split('\n').first, allOf(contains('台積電'), contains('2415')));
       expect(body.split('\n').last, contains('dQuote 提醒'), reason: '觸發條件另起一行');
@@ -148,14 +158,14 @@ void main() {
           symbol: '2330.TW', name: 'Taiwan Semiconductor Manufacturing Company', currency: 'TWD', market: Market.taiwan);
       await instruments.setAlias('2330.TW', '台積電');
       await alerts.addAlert(kind: AlertKind.above, scope: AlertScope.single, symbol: '2330.TW', threshold: 2400);
-      await (await hb(inTradSession)).tick();
+      await (await hb(inTradSession)).tick(strings: zhStrings);
       expect(notif.alertQuoteNames.single, '台積電', reason: '標題用別名，不是來源的長名稱');
       expect(notif.alertBodies.single, contains('台積電 2415'));
     });
 
     test('觸發紀錄會進通知歷史（同一張表两用）', () async {
       await addAboveAlert();
-      await (await hb(inTradSession)).tick();
+      await (await hb(inTradSession)).tick(strings: zhStrings);
       final history = await alerts.history();
       expect(history, hasLength(1));
       expect(history.first.triggered, isTrue);
@@ -166,7 +176,7 @@ void main() {
       await addAboveAlert();
       final rows = await alerts.alerts();
       await alerts.setEnabled(rows.first.id, false);
-      final r = await (await hb(inTradSession)).tick();
+      final r = await (await hb(inTradSession)).tick(strings: zhStrings);
       expect(r.fired, 0);
       expect(notif.alerts, isEmpty);
     });
@@ -175,12 +185,12 @@ void main() {
   group('收盤日報', () {
     test('收盤後發一次；同一天重複 tick 不會重發（冪等 key）', () async {
       await seedWatchlist();
-      var r = await (await hb(afterClose)).tick();
+      var r = await (await hb(afterClose)).tick(strings: zhStrings);
       expect(r.digestsSent, 1);
       expect(notif.digests.single.key, 'TW-2026-11-20');
       expect(notif.digests.single.body, contains('台積電'), reason: '日報內容要有漲跌排行');
 
-      r = await (await hb(afterClose)).tick();
+      r = await (await hb(afterClose)).tick(strings: zhStrings);
       expect(r.digestsSent, 0);
       expect(notif.digests.length, 1);
     });
@@ -188,7 +198,7 @@ void main() {
     test('被 Doze 延後到晚上仍能補發（用時窗而不是時間點）', () async {
       await seedWatchlist();
       final lateNight = DateTime.utc(2026, 11, 20, 12, 0); // 台北 20:00
-      final r = await (await hb(lateNight)).tick();
+      final r = await (await hb(lateNight)).tick(strings: zhStrings);
       expect(r.digestsSent, 1);
     });
 
@@ -196,7 +206,7 @@ void main() {
       await seedWatchlist();
       // 夏令收盤 20:00Z → 台北 04:00，不該吵人
       final tooEarly = DateTime.utc(2026, 8, 5, 20, 30);
-      final r = await (await hb(tooEarly)).tick();
+      final r = await (await hb(tooEarly)).tick(strings: zhStrings);
       expect(notif.digests.where((d) => d.key.startsWith('US')), isEmpty);
       expect(r.digestsSent, 0);
     });
@@ -217,7 +227,7 @@ void main() {
         notification: failing,
         widget: widgetBridge,
       );
-      final r = await heartbeat.tick();
+      final r = await heartbeat.tick(strings: zhStrings);
       expect(r.digestsSent, 0);
       expect(r.errors.any((e) => e.contains('日報')), isTrue);
       expect(await settings.isSent('TW-2026-11-20'), isFalse);
@@ -226,14 +236,14 @@ void main() {
 
   test('心跳會記錄「上次檢查」時間（設定頁的診斷列）', () async {
     await seedWatchlist();
-    await (await hb(inTradSession)).tick();
+    await (await hb(inTradSession)).tick(strings: zhStrings);
     expect(await settings.lastHeartbeat(), inTradSession);
   });
 
   test('小工具只發到設定的列數（設定頁的滑桿不是裝飾）', () async {
     await seedWatchlist();
     await settings.setWidgetRows(1);
-    await (await hb(inTradSession)).tick();
+    await (await hb(inTradSession)).tick(strings: zhStrings);
     expect(widgetBridge.lastPayload?.rows.length, 1,
         reason: '以前把 in_widget 的全部發出去，滑桿形同虛設');
     expect(widgetBridge.lastPayload?.redIsUp, isTrue);
@@ -242,7 +252,7 @@ void main() {
   test('收盤日報可以用提醒頁那條 closingDigest 規則關掉（沒建 = 預設開）', () async {
     await seedWatchlist();
     await alerts.addAlert(kind: AlertKind.closingDigest, scope: AlertScope.single, enabled: false);
-    final r = await (await hb(afterClose)).tick();
+    final r = await (await hb(afterClose)).tick(strings: zhStrings);
     expect(r.digestsSent, 0, reason: '規則停用 = 使用者不要日報');
     expect(await settings.isSent('TW-2026-11-20'), isFalse);
   });

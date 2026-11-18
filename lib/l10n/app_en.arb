@@ -80,6 +80,17 @@
   "emptyPortfolio": "No holdings yet.",
 
   "addAlertTitle": "Add alert",
+
+  "digestTwTitle": "TW close",
+  "digestUsTitle": "US close",
+  "digestTotalAssets": "Total",
+  "digestPnl": "P/L",
+  "digestGainers": "Top gainers",
+  "digestLosers": "Top losers",
+  "digestIndex": "Index",
+  "digestUpdated": "Updated",
+  "digestNoData": "no data",
+  "digestAlertTitle": "dQuote alert",
   "addToWidget": "Add to home widget",
   "removeFromWidget": "Remove from home widget",
   "addedToWidget": "Added to home widget",

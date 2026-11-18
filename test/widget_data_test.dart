@@ -97,7 +97,7 @@ void main() {
         indexQuote: quoteOf('^TWII', 41779, prev: 41000),
       );
       final text = buildDigestText(
-          digest, const DigestStrings.zh(), const MoneyFormatter(baseCcy: 'TWD', rateOf: _rate), DateTime(2026, 11, 20, 13, 40));
+          digest, zhStrings, const MoneyFormatter(baseCcy: 'TWD', rateOf: _rate), DateTime(2026, 11, 20, 13, 40));
 
       expect(text.title, '台股收盤');
       expect(text.body, contains('總資產'));
@@ -120,10 +120,27 @@ void main() {
         losers: const [],
         indexQuote: null,
       );
-      final lines = buildDigestText(digest, const DigestStrings.zh(), const MoneyFormatter(baseCcy: 'TWD', rateOf: _rate), null)
+      final lines = buildDigestText(digest, zhStrings, const MoneyFormatter(baseCcy: 'TWD', rateOf: _rate), null)
           .body
           .split('\n');
       expect(lines, containsAllInOrder(['漲幅前 3', '台積電 +10.00%', '鴻海 +2.04%']));
+    });
+  });
+
+  group('小工具格式契约', () {
+    test('價格小數位與 app 同一條規則（DquoteWidget.kt 的 price() 照這張表實作）', () {
+      const fmt = MoneyFormatter(baseCcy: 'TWD', rateOf: _rate);
+      String price(double v, String ccy, Market m) =>
+          fmt.amount(v, ccy, decimals: m == Market.fx ? 3 : null, withSymbol: false);
+
+      expect(price(215, 'TWD', Market.taiwan), '215.00');
+      expect(price(215.5, 'TWD', Market.taiwan), '215.50');
+      expect(price(23456, 'TWD', Market.taiwan), '23,456', reason: '≥1000 的整數不補 .00');
+      expect(price(400, 'USD', Market.america), '400.00');
+      expect(price(32.9, 'TWD', Market.fx), '32.900', reason: '匯率固定 3 位');
+      expect(price(0.2043, 'TWD', Market.fx), '0.2043', reason: '小於 1 給 4 位');
+      expect(price(0.2043, 'JPY', Market.america), '0.2043', reason: '小於 1 的判斷要在零小幣別之前');
+      expect(price(1200, 'JPY', Market.america), '1,200', reason: '零小幣別一律 0 位');
     });
   });
 }

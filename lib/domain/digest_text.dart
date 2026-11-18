@@ -1,12 +1,16 @@
+import '../core/alerts.dart';
 import '../core/money.dart';
 import '../core/widget_data.dart';
 
-/// 背景通知用的文案。
+/// 通知用的文案（標題、日報各行標籤、提醒條件的文字）。
 ///
-/// 為什麼不用 AppLocalizations：WorkManager 的回調在**另一個 entrypoint** 跑，那裡沒有
-/// widget tree、沒有 `BuildContext`，拿不到生成的 l10n 類別。所以這裡用一般 const 字串，
-/// 由 [Heartbeat] 直接組出 title/body。app 在前景時（設定頁那顆「立即執行一次檢查」）
-/// 會把本地端翻好的 [DigestStrings] 傳進來，兩邊共用同一個組裝函式。
+/// 為什麼不直接用 AppLocalizations：WorkManager 與小工具的回調在**另一個 entrypoint** 跑，
+/// 那裡沒有 widget tree、沒有 `BuildContext`。所以文案由呼叫端組好傳進來 —— 前景
+/// `AppLocalizations.of(context)`、背景 `lookupAppLocalizations(裝置語系)`，兩邊同一份
+/// arb key（見 `di.dart` 的 [digestStringsOf]）。
+///
+/// **刻意不給預設值**：以前這裡有個硬編碼的 `DigestStrings.zh()` 當預設，結果英文介面
+/// 的使用者永遠收到中文通知，而且不會有人發現。少了預設，忘了接線就會編不過。
 class DigestStrings {
   const DigestStrings({
     required this.twTitle,
@@ -19,34 +23,17 @@ class DigestStrings {
     required this.updatedLabel,
     required this.noData,
     required this.alertTitle,
+    required this.kindLabels,
   });
-
-  const DigestStrings.zh()
-      : twTitle = '台股收盤',
-        usTitle = '美股收盤',
-        totalAssets = '總資產',
-        pnlLabel = '損益',
-        gainersLabel = '漲幅前 3',
-        losersLabel = '跌幅前 3',
-        indexLabel = '大盤',
-        updatedLabel = '更新於',
-        noData = '無資料',
-        alertTitle = 'dQuote 提醒';
-
-  const DigestStrings.en()
-      : twTitle = 'TW close',
-        usTitle = 'US close',
-        totalAssets = 'Total',
-        pnlLabel = 'P/L',
-        gainersLabel = 'Gainers',
-        losersLabel = 'Losers',
-        indexLabel = 'Index',
-        updatedLabel = 'Updated',
-        noData = 'no data',
-        alertTitle = 'dQuote alert';
 
   final String twTitle, usTitle, totalAssets, pnlLabel, gainersLabel, losersLabel;
   final String indexLabel, updatedLabel, noData, alertTitle;
+
+  /// 提醒條件的文字（`above` → 「價格突破」）。以前通知裡直接印 `AlertKind.name`，
+  /// 中文使用者看到的是「dQuote 提醒 above 210」這種半英文。
+  final Map<AlertKind, String> kindLabels;
+
+  String kindName(AlertKind kind) => kindLabels[kind] ?? kind.name;
 }
 
 class DigestText {

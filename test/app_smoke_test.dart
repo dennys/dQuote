@@ -195,6 +195,29 @@ void main() {
     await finish(tester);
   });
 
+  testWidgets('啟動時不問通知權限；進過提醒分頁才問（README 承諾的行為）', (tester) async {
+    await pumpApp(tester);
+    expect(notif.asked, 0,
+        reason: '三個分頁一起建的話，AlertsPage.initState 會在使用者還站在自選頁時就把權限問掉；'
+                '太早問會被拒得莫名其妙，而整個提醒功能全靠這個權限');
+
+    await tester.tap(find.byType(NavigationDestination).at(2));
+    await settle(tester);
+    expect(notif.asked, greaterThan(0), reason: '真的進那頁才問');
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
+
+  testWidgets('左滑刪除自選股要立刻重發桌面小工具（不然那档會留在桌面上到下次心跳）', (tester) async {
+    await pumpApp(tester);
+    await tester.drag(find.byKey(const ValueKey('2330.TW')), const Offset(-600, 0));
+    await settle(tester);
+    expect(widgetBridge.lastPayload, isNotNull, reason: '刪除後要立刻發布一次，不是等 15 分鐘');
+    expect(widgetBridge.lastPayload!.rows.map((r) => r.symbol), isNot(contains('2330.TW')));
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
+
   testWidgets('持股頁真的有金額與損益數字（不是空白，也不是 NaN）', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.byType(NavigationDestination).at(1));

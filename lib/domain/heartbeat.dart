@@ -71,7 +71,7 @@ class Heartbeat {
   final AlertEngine engine;
   final String baseCcy;
 
-  Future<HeartbeatResult> tick({bool force = false, DigestStrings strings = const DigestStrings.zh()}) async {
+  Future<HeartbeatResult> tick({bool force = false, required DigestStrings strings}) async {
     final now = clock();
     final errors = <String>[];
 
@@ -202,7 +202,10 @@ class Heartbeat {
     final lines = <String>[
       if (q != null)
         '$name ${q.price}${q.changePct == null ? '' : '（${q.changePct!.toStringAsFixed(2)}%）'}',
-      '${s.alertTitle} ${d.rule.kind.name} $threshold',
+      // 組合/持股損益那一類沒有 quote（問的是部位不是報價），以前內文只剩
+      // 「dQuote 提醒 pnl 5」這種沒有數字的句子，收到也不知道發生什麼事。
+      if (q == null && d.value != null) '${s.pnlLabel} ${d.value!.toStringAsFixed(2)}%',
+      '${s.alertTitle} ${s.kindName(d.rule.kind)} $threshold',
     ];
     return lines.join('\n');
   }
@@ -292,7 +295,7 @@ class Heartbeat {
     final updatedAt = await quotes.lastUpdated() ?? clock();
     await widget.publish(WidgetPayload(
       updatedAt: updatedAt.millisecondsSinceEpoch ~/ 1000,
-      baseCcy: 'TWD',
+      baseCcy: baseCcy, // 用注入的那個，別寫死：以後換基礎幣別時小工具不能還標台幣
       redIsUp: await settings.redIsUp(),
       rows: rows,
     ));

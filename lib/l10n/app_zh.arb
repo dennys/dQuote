@@ -80,6 +80,17 @@
   "emptyPortfolio": "還沒有持股。",
 
   "addAlertTitle": "新增提醒",
+
+  "digestTwTitle": "台股收盤",
+  "digestUsTitle": "美股收盤",
+  "digestTotalAssets": "總資產",
+  "digestPnl": "損益",
+  "digestGainers": "漲幅前 3",
+  "digestLosers": "跌幅前 3",
+  "digestIndex": "大盤",
+  "digestUpdated": "更新於",
+  "digestNoData": "無資料",
+  "digestAlertTitle": "dQuote 提醒",
   "addToWidget": "加入桌面小工具",
   "removeFromWidget": "移出桌面小工具",
   "addedToWidget": "已加入桌面小工具",

@@ -1,8 +1,13 @@
+import 'dart:ui' show Locale;
+
 import 'package:dquote/core/alerts.dart';
 import 'package:dquote/core/models.dart';
 import 'package:dquote/core/widget_data.dart';
 import 'package:dquote/data/datasources/yahoo_datasource.dart';
 import 'package:dquote/platform/platform.dart';
+
+import 'package:dquote/di.dart' show digestStringsOf;
+import 'package:dquote/generated/l10n/app_localizations.dart';
 
 /// 測試用的假實作。
 ///
@@ -83,6 +88,9 @@ class FakeNotificationGateway implements NotificationGateway {
   final List<String?> alertQuoteNames = [];
   bool granted = true;
 
+  /// `ensurePermission()` 被叫過幾次 —— 驗「啟動時不問、進提醒頁才問」。
+  int asked = 0;
+
   /// 測試可塞一條「使用者是點通知進來的」；取過就清（跟真實作一樣）。
   String? pendingDeepLink;
 
@@ -97,7 +105,10 @@ class FakeNotificationGateway implements NotificationGateway {
   }) async {}
 
   @override
-  Future<bool> ensurePermission() async => granted;
+  Future<bool> ensurePermission() async {
+    asked++;
+    return granted;
+  }
 
   @override
   Future<String?> takePendingDeepLink() async {
@@ -134,3 +145,7 @@ class FakeWidgetBridge implements WidgetBridge {
 /// 提醒規則的快捷建立
 AlertRule rule(AlertKind kind, {int id = 1, String? symbol, double? threshold, AlertScope scope = AlertScope.single, bool enabled = true}) =>
     AlertRule(id: id, kind: kind, scope: scope, symbol: symbol, threshold: threshold, enabled: enabled);
+
+/// 通知文案由呼叫端傳進來（前景 l10n、背景用裝置語系查表）。測試固定用中文版，
+/// 內文斷言才不會跟著測試跑在什麼語系而飄。
+final zhStrings = digestStringsOf(lookupAppLocalizations(const Locale('zh')));

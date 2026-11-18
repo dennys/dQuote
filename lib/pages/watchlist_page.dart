@@ -107,7 +107,9 @@ class _WatchlistPageState extends State<WatchlistPage> with WidgetsBindingObserv
             tooltip: l.settingsTitle,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => SettingsPage(onRunTick: () => getIt<AppContainer>().heartbeat.tick(force: true)))),
+                builder: (_) => SettingsPage(
+                onRunTick: () => getIt<AppContainer>().heartbeat
+                    .tick(force: true, strings: digestStringsOf(AppLocalizations.of(context)!))),)),
           ),
           IconButton(
             tooltip: l.actionAdd,
@@ -295,7 +297,11 @@ class _QuoteTile extends StatelessWidget {
         padding: const EdgeInsets.only(right: 16),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      onDismissed: (_) => getIt<AppContainer>().instruments.remove(instrument.symbol),
+      onDismissed: (_) async {
+        await getIt<AppContainer>().instruments.remove(instrument.symbol);
+        // 不重發的話，剛刪掉那档會繼續留在桌面小工具上，到下次心跳（最長 15 分鐘）才消失。
+        unawaited(getIt<AppContainer>().heartbeat.refreshWidget());
+      },
       child: ListTile(
         title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(instrument.symbol, style: Theme.of(context).textTheme.bodySmall),

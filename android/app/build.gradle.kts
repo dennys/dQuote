@@ -26,7 +26,6 @@ android {
     }
 
     buildFeatures {
-        compose = true
         compose = true // Glance 是 Compose 家族，不開這個編不過 DquoteWidget.kt
     }
 

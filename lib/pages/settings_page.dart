@@ -185,7 +185,9 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() => _busy = true);
     try {
       final result = await (widget.onRunTick ??
-          () => getIt<AppContainer>().heartbeat.tick(force: true))();
+          () => getIt<AppContainer>()
+              .heartbeat
+              .tick(force: true, strings: digestStringsOf(AppLocalizations.of(context)!)))();
       await _load();
       if (mounted) {
         await showDialog<void>(

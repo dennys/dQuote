@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../app.dart' show SettingsController;
 import '../di.dart';
+import '../domain/fx_service.dart';
 import 'models.dart';
 import 'money.dart';
 
@@ -10,7 +11,8 @@ import 'money.dart';
 /// 否則「切換基礎貨幣」這種需求來了就會到处漏。
 MoneyFormatter moneyFormatter(BuildContext context) {
   final base = context.select<SettingsController, String>((s) => s.baseCcy);
-  final rates = getIt<AppContainer>().fx.rates;
+  // 用 select 而不是 `getIt<...>().fx.rates`：匯率晚到時這一頁要自己重畫。
+  final rates = context.select<FxService, Map<String, double>>((f) => f.snapshot);
   return MoneyFormatter(baseCcy: base, rateOf: (c) => rates[c] ?? (c == base ? 1 : null));
 }
 

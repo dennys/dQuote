@@ -170,10 +170,25 @@ object WidgetData {
             return listOfNotNull(abs, pct).joinToString(" ")
         }
 
-        /** 幣別不能決定小數位：匯率（market == "fx"）的價格本身就是小數，
-         *  只看 TWD 會把 USD/TWD 印成「32」。跟 Dart 的 `Market.fx` 判斷一致。 */
-        fun price(): String =
-            if (currency == "TWD" && market != "fx") fmt(price, 0) else fmt(price, 2)
+        /** 小數位與 app 的 `MoneyFormatter._decimalsFor` **同一條規則**（app 那邊是來源）：
+         *  匯率 3 位、小於 1 的給 4 位、零小幣別 0 位、≥1000 的整數 0 位、其餘 2 位。
+         *  兩邊各寫一份是因為小工具是 Kotlin、讀不到 Dart 的 formatter；改這裡請同時改
+         *  `lib/core/money.dart`。`test/widget_data_test.dart` 鎖住 app 這一側的期望值：
+         *    TWD 215      → 215.00     TWD 215.5   → 215.50    TWD 23456 → 23,456
+         *    USD 400      → 400.00     fx  32.9    → 32.900    fx  0.2043→ 0.2043
+         *    JPY 0.2043   → 0.2043     JPY 1200    → 1,200
+         */
+        fun price(): String {
+            val digits = when {
+                // 先決：小於 1 一律 4 位（先於 fx）。0.2043 用 3 位會印成 0.204，那是另一個數字。
+                Math.abs(price) < 1.0 && price != 0.0 -> 4
+                market == "fx" -> 3 // app 的自選頁對匯率固定 3 位
+                currency.uppercase() in ZERO_DECIMAL_CCYS -> 0
+                Math.abs(price) >= 1000.0 && price == price.roundToDouble() -> 0
+                else -> 2
+            }
+            return fmt(price, digits)
+        }
 
         /** 與 app 同一組色：紅漲緑跌由 payload 的 red_is_up 決定（設定頁那個開關）。 */
         fun colorValue(redIsUp: Boolean): Color = when {
@@ -192,6 +207,9 @@ object WidgetData {
     }
 
     // 必須用 Compose Color：ColorProvider(Int) 會被當成 @ColorRes 資源 ID，ARGB 值會讓小工具無法載入。
+    // 與 app 的 `MoneyFormatter.zeroDecimalCurrencies` 同步（改了要兩邊一起改）。
+    private val ZERO_DECIMAL_CCYS = setOf("JPY", "KRW", "VND", "IDR")
+
     private val RED_UP = Color(0xFFEF5350)
     private val GREEN_DOWN = Color(0xFF66BB6A)
     private val FLAT = Color(0xFFB0BEC5)
@@ -233,6 +251,5 @@ object WidgetData {
             // 匯率的 +0.1000 縮成 +0.1，小工具就跟 app 顯示兩個不一樣的數字。
             minimumFractionDigits = digits
             maximumFractionDigits = digits
-            minimumFractionDigits = digits
         }.format(v)
 }

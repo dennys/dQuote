@@ -107,4 +107,23 @@ void main() {
       expect(() => repo.history('TSM', QuoteRange.d1), throwsA(anything));
     });
   });
+
+  group('走勢與快取的互動', () {
+    test('history() 要把走勢批次附帶的最新報價寫進快取', () async {
+      // 只打過 candles、從不打 quote：快取裡還是必須出現這档，否則個股頁會出現
+      // 「圖是新的、頂部價格是舊的」（不在自選股裡的代號最明顯 —— 前景輪詢不會抓它）。
+      await repo.history('TSM', QuoteRange.d5, force: true);
+      final cached = await repo.cached(['TSM']);
+      expect(cached['TSM'], isNotNull, reason: '走勢批次本來就附了報價，丟掉就是白丟');
+      expect(cached['TSM']!.price, 400);
+      expect(cached['TSM']!.previousClose, 390, reason: '前收盤也要一起寫，漲跌才算得出來');
+    });
+
+    test('watchCached(符號清單) 只推那些符號（改成直接用 stream 的行之後行為不變）', () async {
+      await repo.refresh(['2330.TW', 'TSM']);
+      final map = await repo.watchCached(['2330.TW']).first;
+      expect(map.keys, ['2330.TW']);
+      expect(map['2330.TW']!.price, 2415);
+    });
+  });
 }

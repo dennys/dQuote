@@ -54,4 +54,32 @@ void main() {
     expect(source.requested, isEmpty);
     expect(fx.rateOf('TWD'), 1);
   });
+
+  test('整批抓失敗時不能標成「剛抓過」—— 網路回來下一次就要重試（不等 TTL）', () async {
+    final now = DateTime.utc(2026, 11, 20, 1);
+    final fx = FxService(repo, clock: () => now);
+
+    source.failing.add('USDTWD=X');
+    await fx.ensureRates(['USD']);
+    expect(fx.rateOf('USD'), isNull, reason: '抓不到就回 null，由 UI 顯示 —');
+
+    source.failing.remove('USDTWD=X');
+    await fx.ensureRates(['USD']);
+    expect(fx.rateOf('USD'), 32.9, reason: '網路恢復後下一次就要抓到');
+  });
+
+  test('匯率到手要通知 UI；內容沒變則不通知、快照實例也不變', () async {
+    final now = DateTime.utc(2026, 11, 20, 1);
+    final fx = FxService(repo, clock: () => now);
+    var notified = 0;
+    fx.addListener(() => notified++);
+
+    await fx.ensureRates(['USD']);
+    final snapshot = fx.snapshot;
+    expect(notified, 1, reason: '匯率晚到时，已經畫出來的頁面要自己換數字');
+
+    await fx.ensureRates(['USD']);
+    expect(notified, 1, reason: '同一個數字不應再推 —— 否則 context.select 會一直重建');
+    expect(fx.snapshot, same(snapshot), reason: '同一份內容要回同一個 Map 實例');
+  });
 }

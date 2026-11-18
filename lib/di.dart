@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:get_it/get_it.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'core/alerts.dart';
 import 'core/clock.dart';
 import 'core/trading_calendar.dart';
 import 'data/db/database.dart';
@@ -12,6 +13,7 @@ import 'data/repositories/instrument_repository.dart';
 import 'data/repositories/portfolio_repository.dart';
 import 'data/repositories/quote_repository.dart';
 import 'data/repositories/settings_repository.dart';
+import 'domain/digest_text.dart';
 import 'domain/fx_service.dart';
 import 'domain/heartbeat.dart';
 import 'domain/portfolio_service.dart';
@@ -124,7 +126,32 @@ class AppContainer {
   }
 }
 
+/// 通知文案的**唯一來源**。前景傳 `AppLocalizations.of(context)!`，背景傳裝置語系查出來的
+/// （見 [backgroundDigestStrings]）。兩邊同一份 arb key，所以英文機器不會收到中文通知。
+DigestStrings digestStringsOf(AppLocalizations l) => DigestStrings(
+      twTitle: l.digestTwTitle,
+      usTitle: l.digestUsTitle,
+      totalAssets: l.digestTotalAssets,
+      pnlLabel: l.digestPnl,
+      gainersLabel: l.digestGainers,
+      losersLabel: l.digestLosers,
+      indexLabel: l.digestIndex,
+      updatedLabel: l.digestUpdated,
+      noData: l.digestNoData,
+      alertTitle: l.digestAlertTitle,
+      kindLabels: {
+        AlertKind.above: l.alertKindAbove,
+        AlertKind.below: l.alertKindBelow,
+        AlertKind.dayChange: l.alertKindDayChange,
+        AlertKind.pnl: l.alertKindPnl,
+        AlertKind.fx: l.alertKindFx,
+        AlertKind.closingDigest: l.alertKindClosingDigest,
+      },
+    );
+
 /// 背景通知要的字串（沒有 BuildContext，用裝置語系查表 —— 比照同 family 專案的做法）。
+DigestStrings backgroundDigestStrings() =>
+    digestStringsOf(lookupAppLocalizations(PlatformDispatcher.instance.locale));
 ({String digestName, String digestDesc, String priceName, String priceDesc, String pnlName, String pnlDesc})
     backgroundChannelTexts() {
   final l = lookupAppLocalizations(PlatformDispatcher.instance.locale);
@@ -167,7 +194,7 @@ Future<bool> _runBackgroundTick({required bool force}) async {
       pnlName: t.pnlName,
       pnlDesc: t.pnlDesc,
     );
-    await container.heartbeat.tick(force: force);
+    await container.heartbeat.tick(force: force, strings: backgroundDigestStrings());
     return true;
   } on Object {
     return false;

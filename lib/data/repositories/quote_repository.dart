@@ -29,7 +29,6 @@ class QuoteRepository {
 
     final ok = <String, Quote>{};
     final failed = <String, Object>{};
-    final now = DateTime.now();
     await _db.batch((b) {
       for (final (symbol, quote, error) in results) {
         if (quote == null) {
@@ -37,59 +36,55 @@ class QuoteRepository {
           continue;
         }
         ok[symbol] = quote;
-        b.insert(
-          _db.quoteCache,
-          QuoteCacheCompanion.insert(
-            symbol: symbol,
-            price: quote.price,
-            previousClose: Value(quote.previousClose),
-            marketTime: Value(quote.marketTime),
-            volume: Value(quote.volume),
-            name: Value(quote.name),
-            currency: Value(quote.currency),
-            market: Value(quote.market.name),
-            updatedAt: now,
-          ),
-          onConflict: DoUpdate(
-            (old) => QuoteCacheCompanion.insert(
-              symbol: symbol,
-              price: quote.price,
-              previousClose: Value(quote.previousClose),
-              marketTime: Value(quote.marketTime),
-              volume: Value(quote.volume),
-              name: Value(quote.name),
-              currency: Value(quote.currency),
-              market: Value(quote.market.name),
-              updatedAt: now,
-            ),
-          ),
-        );
+        putQuote(b, quote);
       }
     });
     return QuoteBatch(ok, failed);
   }
 
+  /// 一列報價進快取（insert-or-update）。給 [refresh] 與 [history] 共用 —— 兩條路拿到的
+  /// 都是同一個 `Quote` 形狀，寫法不該分兩份。
+  void putQuote(Batch b, Quote quote, {DateTime? at}) {
+    final row = QuoteCacheCompanion.insert(
+      symbol: quote.symbol,
+      price: quote.price,
+      previousClose: Value(quote.previousClose),
+      marketTime: Value(quote.marketTime),
+      volume: Value(quote.volume),
+      name: Value(quote.name),
+      currency: Value(quote.currency),
+      market: Value(quote.market.name),
+      updatedAt: at ?? DateTime.now(),
+    );
+    b.insert(_db.quoteCache, row, onConflict: DoUpdate((_) => row));
+  }
+
   /// 只讀快取（不打網路）：開機、widget 重建、離線時用。
   Future<Map<String, Quote>> cached([Iterable<String>? symbols]) async {
     final q = _db.select(_db.quoteCache);
-    final list = symbols == null ? await q.get() : await (q..where((t) => t.symbol.isIn(symbols.toSet()))).get();
-    return {
-      for (final row in list)
-        row.symbol: Quote(
-          symbol: row.symbol,
-          name: row.name,
-          currency: row.currency,
-          market: Market.values.firstWhere((e) => e.name == row.market, orElse: () => Market.america),
-          price: row.price,
-          previousClose: row.previousClose,
-          marketTime: row.marketTime,
-          volume: row.volume,
-        ),
-    };
+    if (symbols != null) q.where((t) => t.symbol.isIn(symbols.toSet()));
+    return {for (final row in await q.get()) row.symbol: _fromRow(row)};
   }
 
-  Stream<Map<String, Quote>> watchCached([Iterable<String>? symbols]) =>
-      _db.select(_db.quoteCache).watch().map((_) => cached(symbols)).asyncMap((f) => f);
+  /// 快取變動就推一份新的。**直接用 stream 給的行**，不要再 `.map((_) => cached(...))`
+  /// 回爐查一次 —— 那樣每個事件都打兩次查詢（心跳寫一次庫就是 2N 次）。
+  Stream<Map<String, Quote>> watchCached([Iterable<String>? symbols]) {
+    final q = _db.select(_db.quoteCache);
+    final wanted = symbols?.toSet();
+    if (wanted != null) q.where((t) => t.symbol.isIn(wanted));
+    return q.watch().map((rows) => {for (final row in rows) row.symbol: _fromRow(row)});
+  }
+
+  static Quote _fromRow(QuoteCacheData row) => Quote(
+        symbol: row.symbol,
+        name: row.name,
+        currency: row.currency,
+        market: Market.values.firstWhere((e) => e.name == row.market, orElse: () => Market.america),
+        price: row.price,
+        previousClose: row.previousClose,
+        marketTime: row.marketTime,
+        volume: row.volume,
+      );
 
   /// 一批抓完後的最新更新時間（顯示「更新於」）。沒有任何快取 → null。
   Future<DateTime?> lastUpdated() async {
@@ -116,9 +111,9 @@ class QuoteRepository {
       return fromCache();
     }
 
-    final List<Candle> series;
+    final CandleSeries fetched;
     try {
-      series = (await _source.candles(symbol, range)).candles;
+      fetched = await _source.candles(symbol, range);
     } on Object {
       // 過期 + 網路壞掉 → 還是給最後抓到的圖（README 承諾「資料源壞掉時 UI 還有東西可顯示」，
       // 不該把一張畫得出來的圖換成錯誤頁）。從來沒抓過才把錯誤丟給 UI。
@@ -131,7 +126,11 @@ class QuoteRepository {
           ..where((t) => t.symbol.equals(symbol) & t.rangeKey.equals(key)))
         .go();
     await _db.batch((b) {
-      for (final c in series) {
+      // 走勢批次本來就附了一張最新報價（`CandleSeries.quote`）。以前直接丟掉，個股頁頂部那個
+      // 大數字就還讀著舊快取 —— 下拉更新後「圖是新的、價格是舊的」，而對不在自選股裡的代號
+      // （從提醒通知點進來的那種）會一路舊到下次心跳。同一批資料已在手上，寫起來是免費的。
+      putQuote(b, fetched.quote, at: now);
+      for (final c in fetched.candles) {
         b.insert(
           _db.candles,
           CandlesCompanion.insert(
@@ -159,7 +158,7 @@ class QuoteRepository {
         );
       }
     });
-    return series;
+    return fetched.candles;
   }
 
   bool _stale(DateTime fetchedAt, QuoteRange range) {

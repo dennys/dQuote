@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 /// 漲跌色。台灣慣例紅漲綠跌、美股慣例綠漲紅跌 → 做成可切換（設定頁一個開關），
-/// 而且**只准從 ThemeExtension 取**，不準在任何 widget 裡寫死 `Colors.red`：
-/// 桌面小工具的 Kotlin 端讀的是同一組色值（`android/.../WidgetColors.kt`），兩邊要一致。
+/// 而且**只准從 ThemeExtension 取**，不準在任何 widget 裡寫死 `Colors.red`。
+///
+/// 桌面小工具是 Kotlin（`android/app/src/main/kotlin/.../DquoteWidget.kt` 的
+/// `RED_UP / GREEN_DOWN / FLAT`）：**同一個語意、不是同一組色值**。小工具的卡片底色是深的
+/// (0xF0121A24)，那邊用亮一階的 #EF5350/#66BB6A 才看得清；紅漲綠跌由 payload 的 `red_is_up`
+/// 決定，那一側不自己判斷。改這裡不會改到小工具 —— 要換色得兩邊一起想。
 @immutable
 class PriceColors extends ThemeExtension<PriceColors> {
   const PriceColors({required this.up, required this.down, required this.flat});

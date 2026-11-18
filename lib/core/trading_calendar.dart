@@ -78,6 +78,11 @@ class TradingCalendar {
     final t = tst(now);
     if (!_isWeekday(t)) return null;
     if (_minutes(t) < 13 * 60 + 35) return null;
+    // 上限 22:00（2026-11-21 拍板）：被 Doze 延後到很晚才補上的話，那時候發一條「今日收盤」
+    // 看起來像壞掉，而且是在使用者早就不看手機的時段轟人。代價是那天就漏掉那份日報 ——
+    // 收盤價本身在自選股與個股頁都還看得到，只是不主動推。
+    // （美報那側的窗是 05:00–12:00，因為它的收盤落在台北凌晨。）
+    if (_minutes(t) >= 22 * 60) return null;
     return 'TW-${_date(t)}';
   }
 
