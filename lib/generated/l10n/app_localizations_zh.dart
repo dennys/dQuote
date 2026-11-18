@@ -49,6 +49,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fieldName => '名稱';
 
   @override
+  String get pickSymbol => '從自選股選擇';
+
+  @override
+  String get actionAlias => '改別名';
+
+  @override
+  String get aliasTitle => '別名（只影響顯示）';
+
+  @override
+  String get aliasHint => '留空＝用來源的名稱';
+
+  @override
   String get fieldShares => '股數';
 
   @override

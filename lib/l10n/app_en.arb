@@ -16,6 +16,10 @@
 
   "fieldSymbol": "Symbol",
   "fieldName": "Name",
+  "pickSymbol": "Pick from watchlist",
+  "actionAlias": "Set alias",
+  "aliasTitle": "Alias (display only)",
+  "aliasHint": "Leave blank to use the source name",
   "fieldShares": "Shares",
   "fieldCostPrice": "Cost price",
   "fieldAmount": "Amount",

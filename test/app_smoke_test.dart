@@ -138,6 +138,9 @@ void main() {
     // seed 的前 4 档在小工具裡，滑桿預設 4 列 → 已經滿了。
     await tester.longPress(find.byKey(const ValueKey('NVDA')));
     await settle(tester);
+    await tester.tap(find.descendant(
+        of: find.byType(BottomSheet), matching: find.text('Add to home widget')));
+    await settle(tester);
     expect(widgetBridge.lastPayload?.rows.map((r) => r.symbol), isNot(contains('NVDA')),
         reason: 'forWidget 照 sortOrder 截前 4 列，NVDA 排最後 → 不會出現在小工具');
     expect(find.textContaining('Home widget is full'), findsOneWidget,
@@ -146,11 +149,48 @@ void main() {
     // 關掉一列 → 剛才被截掉的 NVDA 自動補上來（證明重發真的走到 WidgetBridge）。
     await tester.longPress(find.byKey(const ValueKey('2330.TW')));
     await settle(tester);
+    await tester.tap(find.descendant(
+        of: find.byType(BottomSheet), matching: find.text('Remove from home widget')));
+    await settle(tester);
     expect(widgetBridge.lastPayload?.rows.map((r) => r.symbol), contains('NVDA'));
     // snackbar 是排隊的（上一條還在上面時新的不會插隊），所以得先讓它過場。
     await tester.pump(const Duration(seconds: 5));
     await settle(tester);
     expect(find.textContaining('Removed from home widget'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
+
+  testWidgets('長按自選股 → 改別名 → 各處改用別名顯示（代號不變）', (tester) async {
+    await pumpApp(tester);
+    await tester.longPress(find.byKey(const ValueKey('2330.TW')));
+    await settle(tester);
+    await tester.tap(find.descendant(of: find.byType(BottomSheet), matching: find.text('Set alias')));
+    await settle(tester);
+    await tester.enterText(find.byType(TextField).last, '台積電');
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    expect(find.text('台積電'), findsWidgets, reason: '標題换成使用者取的別名');
+    expect(find.text('2330.TW'), findsWidgets, reason: '副標仍是代號 —— 別名只改顯示，不取代代號');
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
+
+  testWidgets('新增持股：代號可以從自選股選（不用手打 2330.TW 這種後綴）', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.byType(NavigationDestination).at(1));
+    await settle(tester);
+    await tester.tap(find.descendant(of: find.byType(PortfolioPage), matching: find.byIcon(Icons.add)));
+    await settle(tester);
+    await tester.tap(find.descendant(of: find.byType(BottomSheet), matching: find.text('Add holding')));
+    await settle(tester);
+    await tester.tap(find.byIcon(Icons.expand_more));
+    await settle(tester);
+    await tester.tap(find.descendant(of: find.byType(BottomSheet), matching: find.text('元大台灣50')));
+    await settle(tester);
+    final field = tester.widget<TextField>(
+        find.ancestor(of: find.byIcon(Icons.expand_more), matching: find.byType(TextField)));
+    expect(field.controller?.text, '0050.TW', reason: '清單按下去要填的是代號');
     expect(tester.takeException(), isNull);
     await finish(tester);
   });

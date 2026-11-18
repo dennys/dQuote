@@ -6,6 +6,7 @@ import '../core/symbol.dart';
 import '../data/db/database.dart';
 import '../di.dart';
 import '../generated/l10n/app_localizations.dart';
+import 'symbol_field.dart';
 
 /// 提醒頁：規則清單 + 通知歷史 + 「上次檢查」診斷列。
 ///
@@ -128,6 +129,9 @@ class _AlertsPageState extends State<AlertsPage> {
     final symbolCtrl = TextEditingController();
     final thresholdCtrl = TextEditingController();
     String? error;
+    // 代號可以打也可以選（提醒常常盯不在自選股裡的代號，所以兩者都要留）。
+    final watchOptions = symbolOptionsOf(await c.instruments.all());
+    if (!context.mounted) return; // await 之後才用 context 開 dialog
 
     await showDialog<void>(
       context: context,
@@ -162,10 +166,16 @@ class _AlertsPageState extends State<AlertsPage> {
                       onChanged: (v) => setState(() => scope = v ?? scope),
                     ),
                   if (needsSymbol && kind != AlertKind.closingDigest)
-                    TextField(
-                        controller: symbolCtrl,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(labelText: l.fieldSymbol, errorText: error)),
+                    SymbolField(
+                      controller: symbolCtrl,
+                      labelText: l.fieldSymbol,
+                      errorText: error,
+                      options: {
+                        ...watchOptions,
+                        // 匯率提醒：把已知的幣別都列出來（USDTWD=X 這種没人記得起來打）
+                        if (kind == AlertKind.fx) for (final b in knownFxBases) c.fx.symbolOf(b): b,
+                      },
+                    ),
                   if (kind != AlertKind.closingDigest)
                     TextField(
                         controller: thresholdCtrl,

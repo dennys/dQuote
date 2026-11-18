@@ -176,6 +176,30 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get fieldName;
 
+  /// No description provided for @pickSymbol.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick from watchlist'**
+  String get pickSymbol;
+
+  /// No description provided for @actionAlias.
+  ///
+  /// In en, this message translates to:
+  /// **'Set alias'**
+  String get actionAlias;
+
+  /// No description provided for @aliasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alias (display only)'**
+  String get aliasTitle;
+
+  /// No description provided for @aliasHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to use the source name'**
+  String get aliasHint;
+
   /// No description provided for @fieldShares.
   ///
   /// In en, this message translates to:

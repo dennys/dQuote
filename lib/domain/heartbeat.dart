@@ -78,6 +78,13 @@ class Heartbeat {
     final ruleRows = await alerts.alerts();
     final rules = [for (final r in ruleRows) _toRule(r)];
     final instrumentsAll = await instruments.all();
+    // 通知上的顯示名：**使用者取的別名 > 自選股存的名稱 > 來源給的名字**（與小工具/日報的
+    // `_displayName` 同一個優先序）。少了這一層，通知標題就只顯示 Yahoo 給的名字或代號。
+    final displayOf = {
+      for (final i in instrumentsAll)
+        if ((i.alias?.isNotEmpty ?? false) || i.name.isNotEmpty)
+          i.symbol: (i.alias?.isNotEmpty ?? false) ? i.alias! : i.name,
+    };
 
     // 收盤日報的開關就是提醒頁那條 `closingDigest` 規則（沒建這條 = 預設開）。
     // 以前它是個完全沒人讀的 kind：設了不會觸發、不想收也沒有地方關。
@@ -129,11 +136,13 @@ class Heartbeat {
             cleared++;
           } else {
             await alerts.recordFire(d.rule.id, d.value);
+            final q = d.rule.symbol == null ? null : quoteMap[d.rule.symbol];
+            final shown = q?.copyWith(name: displayOf[q.symbol] ?? q.name);
             await notification.showAlert(
               rule: d.rule,
-              quote: d.rule.symbol == null ? null : quoteMap[d.rule.symbol],
+              quote: shown,
               value: d.value,
-              body: _alertBody(d, quoteMap, strings),
+              body: _alertBody(d, shown, strings),
             );
             fired++;
           }
@@ -185,13 +194,17 @@ class Heartbeat {
         note: r.note,
       );
 
-  String _alertBody(AlertDecision d, Map<String, Quote> quotes, DigestStrings s) {
-    final q = d.rule.symbol == null ? null : quotes[d.rule.symbol];
+  /// 通知的內容。**一節一行**：通知的標題已經顯示過名稱，內文再擠成一行就變成
+  /// 「台積電 215.0（1.23%）— dQuote 提醒 above 210」那種分不出邊界的長串。
+  String _alertBody(AlertDecision d, Quote? q, DigestStrings s) {
     final name = (q?.name == null || q!.name.isEmpty) ? (d.rule.symbol ?? '') : q.name;
-    final price = q == null ? '' : '${q.price}';
-    final pct = q?.changePct == null ? '' : '${q!.changePct!.toStringAsFixed(2)}%';
     final threshold = d.rule.threshold == null ? '' : '${d.rule.threshold}';
-    return '$name $price（$pct）— ${s.alertTitle} ${d.rule.kind.name} $threshold';
+    final lines = <String>[
+      if (q != null)
+        '$name ${q.price}${q.changePct == null ? '' : '（${q.changePct!.toStringAsFixed(2)}%）'}',
+      '${s.alertTitle} ${d.rule.kind.name} $threshold',
+    ];
+    return lines.join('\n');
   }
 
   Future<ClosingDigest> _buildDigest(

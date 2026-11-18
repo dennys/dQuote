@@ -43,6 +43,19 @@ class Quote {
   final double price;
   final double? previousClose;
 
+  /// 只換顯示名用（通知要把使用者自訂的**別名**放上去，但別名不進 Quote 本身 ——
+  /// 它是 instruments 表的欄位，不該散到報價模型裡）。
+  Quote copyWith({String? name}) => Quote(
+        symbol: symbol,
+        name: name ?? this.name,
+        currency: currency,
+        market: market,
+        price: price,
+        previousClose: previousClose,
+        marketTime: marketTime,
+        volume: volume,
+      );
+
   /// 交易所時間（epoch seconds），用於顯示「更新於」與判斷是否為盤中價。
   final int? marketTime;
   final double? volume;

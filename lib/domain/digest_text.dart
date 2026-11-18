@@ -26,8 +26,8 @@ class DigestStrings {
         usTitle = '美股收盤',
         totalAssets = '總資產',
         pnlLabel = '損益',
-        gainersLabel = '漲價前',
-        losersLabel = '跌價前',
+        gainersLabel = '漲幅前 3',
+        losersLabel = '跌幅前 3',
         indexLabel = '大盤',
         updatedLabel = '更新於',
         noData = '無資料',
@@ -75,9 +75,14 @@ DigestText buildDigestText(
   lines.add('${s.totalAssets} ${fmt.base(total)} · '
       '${s.pnlLabel} ${d.summary.pnlPct == null ? s.noData : fmt.pct(d.summary.pnlPct!)}');
 
+  // 一檔一行。以前三檔擠在同一行用「 / 」隔開，通知裡（BigText 的摺疊視圖只給一行）
+  // 看起來就是一串分不清邊界的數字。
   void addRank(String label, List<WidgetRow> rows) {
     if (rows.isEmpty) return;
-    lines.add('$label ${rows.map((r) => '${r.name.isEmpty ? r.symbol : r.name} ${fmt.pct(r.changePct ?? 0)}').join(' / ')}');
+    lines.add(label);
+    for (final r in rows) {
+      lines.add('${r.name.isEmpty ? r.symbol : r.name} ${fmt.pct(r.changePct ?? 0)}');
+    }
   }
 
   addRank(s.gainersLabel, d.gainers);

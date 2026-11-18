@@ -134,6 +134,25 @@ void main() {
       expect(notif.alerts.length, 2);
     });
 
+    test('通知內文一節一行（不擠成一行）', () async {
+      await addAboveAlert();
+      await (await hb(inTradSession)).tick();
+      final body = notif.alertBodies.single;
+      expect(body.split('\n').first, allOf(contains('台積電'), contains('2415')));
+      expect(body.split('\n').last, contains('dQuote 提醒'), reason: '觸發條件另起一行');
+      expect(body, isNot(contains('—')), reason: '不要用破折號把各節串成一行');
+    });
+
+    test('通知的標題與內文都用使用者取的別名（長名字那几档靠這個）', () async {
+      await instruments.add(
+          symbol: '2330.TW', name: 'Taiwan Semiconductor Manufacturing Company', currency: 'TWD', market: Market.taiwan);
+      await instruments.setAlias('2330.TW', '台積電');
+      await alerts.addAlert(kind: AlertKind.above, scope: AlertScope.single, symbol: '2330.TW', threshold: 2400);
+      await (await hb(inTradSession)).tick();
+      expect(notif.alertQuoteNames.single, '台積電', reason: '標題用別名，不是來源的長名稱');
+      expect(notif.alertBodies.single, contains('台積電 2415'));
+    });
+
     test('觸發紀錄會進通知歷史（同一張表两用）', () async {
       await addAboveAlert();
       await (await hb(inTradSession)).tick();

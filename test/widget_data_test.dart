@@ -106,6 +106,25 @@ void main() {
       expect(text.body, contains('+10.00%'));
       expect(text.body, contains('更新於 13:40'));
     });
+
+    test('排行榜一檔一行（通知裡三檔擠一行會分不出邊界）', () {
+      const calc = PnlCalculator(baseCcy: 'TWD', rateOf: _rate);
+      final digest = ClosingDigest(
+        market: 'TW',
+        tradingDate: '2026-11-20',
+        summary: calc.summarize([], []),
+        gainers: const [
+          WidgetRow(symbol: '2330.TW', name: '台積電', price: 550, change: 50, changePct: 10, currency: 'TWD', market: Market.taiwan),
+          WidgetRow(symbol: '2317.TW', name: '鴻海', price: 100, change: 2, changePct: 2.04, currency: 'TWD', market: Market.taiwan),
+        ],
+        losers: const [],
+        indexQuote: null,
+      );
+      final lines = buildDigestText(digest, const DigestStrings.zh(), const MoneyFormatter(baseCcy: 'TWD', rateOf: _rate), null)
+          .body
+          .split('\n');
+      expect(lines, containsAllInOrder(['漲幅前 3', '台積電 +10.00%', '鴻海 +2.04%']));
+    });
   });
 }
 

@@ -32,6 +32,9 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
   bool _watched = false;
   bool _inWidget = false;
 
+  /// 使用者自己取的顯示名（只用標題；沒設就照來源名稱）。
+  String? _alias;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +59,7 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
         _costPrice = holdings.isEmpty ? null : _averageCost(holdings);
         _watched = watched != null;
         _inWidget = watched?.inWidget ?? false;
+        _alias = watched?.alias;
         _loading = false;
       });
     } on Object catch (e) {
@@ -96,7 +100,9 @@ class _QuoteDetailPageState extends State<QuoteDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(q?.name.isNotEmpty == true ? q!.name : widget.symbol),
+        title: Text((_alias?.isNotEmpty ?? false)
+            ? _alias!
+            : (q?.name.isNotEmpty == true ? q!.name : widget.symbol)),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: () => _load(force: true)),
           if (_watched)

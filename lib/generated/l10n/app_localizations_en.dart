@@ -49,6 +49,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fieldName => 'Name';
 
   @override
+  String get pickSymbol => 'Pick from watchlist';
+
+  @override
+  String get actionAlias => 'Set alias';
+
+  @override
+  String get aliasTitle => 'Alias (display only)';
+
+  @override
+  String get aliasHint => 'Leave blank to use the source name';
+
+  @override
   String get fieldShares => 'Shares';
 
   @override

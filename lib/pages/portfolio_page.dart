@@ -7,6 +7,7 @@ import '../core/symbol.dart';
 import '../domain/portfolio_service.dart';
 import '../di.dart';
 import '../generated/l10n/app_localizations.dart';
+import 'symbol_field.dart';
 import '../theme.dart';
 
 /// 持股總覽：總資產 + 損益拆解（證券 / 匯兌 / 合計）+ 資產配置 + 持股 + 現金外幣。
@@ -184,6 +185,9 @@ class _PortfolioPageState extends State<PortfolioPage> {
     final sharesCtrl = TextEditingController(text: existing == null ? '' : _num(existing.shares));
     final costCtrl = TextEditingController(text: existing == null ? '' : _num(existing.costPrice));
     String? error;
+    // 持股常常就是自選股裡那一档 → 給清單選；還是可以打（沒加自選的那档）。
+    final options = symbolOptionsOf(await c.instruments.all());
+    if (!context.mounted) return; // await 之後才用 context 開 dialog
 
     await showDialog<void>(
       context: context,
@@ -193,11 +197,13 @@ class _PortfolioPageState extends State<PortfolioPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              SymbolField(
                   controller: symbolCtrl,
                   enabled: existing == null,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(labelText: l.fieldSymbol, errorText: error, hintText: '2330 · TSM')),
+                  options: options,
+                  labelText: l.fieldSymbol,
+                  errorText: error,
+                  hintText: '2330 · TSM'),
               TextField(
                   controller: sharesCtrl,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),

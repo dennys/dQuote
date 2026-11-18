@@ -16,6 +16,10 @@
 
   "fieldSymbol": "代號",
   "fieldName": "名稱",
+  "pickSymbol": "從自選股選擇",
+  "actionAlias": "改別名",
+  "aliasTitle": "別名（只影響顯示）",
+  "aliasHint": "留空＝用來源的名稱",
   "fieldShares": "股數",
   "fieldCostPrice": "成本",
   "fieldAmount": "金額",

@@ -316,7 +316,71 @@ class _QuoteTile extends StatelessWidget {
         ),
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => QuoteDetailPage(symbol: instrument.symbol))),
-        onLongPress: () => _toggleWidget(context),
+        onLongPress: () => _menu(context),
+      ),
+    );
+  }
+
+  /// 長按選單。以前長按直接切桌面小工具，現在多一条「改別名」—— 別名在模型與各處顯示
+  /// （自選股/小工具/日報/持股）早就生效了，唯獨**沒有地方可以設定它**。
+  Future<void> _menu(BuildContext context) async {
+    final l = AppLocalizations.of(context)!;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(l.actionAlias),
+              subtitle: Text(l.aliasTitle),
+              onTap: () => Navigator.pop(sheetContext, 'alias'),
+            ),
+            ListTile(
+              leading: Icon(instrument.inWidget ? Icons.widgets : Icons.widgets_outlined),
+              title: Text(instrument.inWidget ? l.removeFromWidget : l.addToWidget),
+              onTap: () => Navigator.pop(sheetContext, 'widget'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    switch (choice) {
+      case 'alias':
+        await _aliasDialog(context);
+      case 'widget':
+        await _toggleWidget(context);
+    }
+  }
+
+  /// 別名只改顯示：不進搜尋、不動代號。留空就是拿掉別名、用來源給的名稱。
+  Future<void> _aliasDialog(BuildContext context) async {
+    final l = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: instrument.alias ?? '');
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.actionAlias),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(labelText: l.aliasTitle, hintText: l.aliasHint),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(l.actionCancel)),
+          FilledButton(
+            onPressed: () async {
+              final text = controller.text.trim();
+              await getIt<AppContainer>()
+                  .instruments
+                  .setAlias(instrument.symbol, text.isEmpty ? null : text);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+            },
+            child: Text(l.actionSave),
+          ),
+        ],
       ),
     );
   }

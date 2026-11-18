@@ -75,6 +75,12 @@ Quote quoteOf(String symbol, double price, {double? prev, String ccy = 'TWD', Ma
 class FakeNotificationGateway implements NotificationGateway {
   final List<String> alerts = [];
   final List<({String key, String title, String body})> digests = [];
+
+  /// 通知內文（斷行行為靠這個驗，`alerts` 那個字串是給觸發順序用的）。
+  final List<String> alertBodies = [];
+
+  /// 通知標題的來源（gateway 用 quote.name 當標題）—— 驗別名有沒有上到通知。
+  final List<String?> alertQuoteNames = [];
   bool granted = true;
 
   /// 測試可塞一條「使用者是點通知進來的」；取過就清（跟真實作一樣）。
@@ -108,6 +114,8 @@ class FakeNotificationGateway implements NotificationGateway {
     required String body,
   }) async {
     alerts.add('${rule.kind.name}:${rule.symbol}:$value');
+    alertBodies.add(body);
+    alertQuoteNames.add(quote?.name);
   }
 
   @override
